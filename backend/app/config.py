@@ -15,6 +15,8 @@ class Settings:
         self.data_dir = Path(os.getenv("DATA_DIR", str(DEFAULT_DATA_DIR))).resolve()
         default_database = f"sqlite:///{self.data_dir / 'debris.db'}"
         self.database_url = os.getenv("DATABASE_URL", default_database)
+        self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        self.queue_mode = os.getenv("QUEUE_MODE", "local").lower()
         self.max_upload_size_bytes = int(
             os.getenv("MAX_UPLOAD_SIZE_BYTES", str(100 * 1024 * 1024))
         )

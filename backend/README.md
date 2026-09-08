@@ -24,7 +24,7 @@ the future ML wrapper. SQLite remains available for isolated tests.
 Start the database from the repository root before starting the API:
 
 ```powershell
-docker compose up -d postgres
+docker compose up -d postgres redis
 ```
 
 To create a local demo survey without uploading a file, run:
@@ -39,5 +39,15 @@ To create a local demo survey without uploading a file, run:
 pytest
 ```
 
-The first production hardening pass will replace the fake adapter, move the
-database to PostgreSQL, and move background jobs to Redis/Celery.
+The next production hardening pass will replace the fake adapter and run the
+API and worker as containerized services.
+
+To use Celery instead of the local FastAPI background task, set
+`QUEUE_MODE=celery` in `.env`, start Redis, and run this from the backend
+directory in a separate terminal:
+
+```powershell
+celery -A app.worker:celery_app worker --loglevel=info --pool=solo
+```
+
+Keep `QUEUE_MODE=local` for the simple local setup and API tests.
