@@ -1,20 +1,59 @@
 services:
 
+  api:
+    build:
+      context: ./backend
+    container_name: sih-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/sih_ps57
+      - REDIS_URL=redis://redis:6379/0
+      - QUEUE_MODE=celery
+      - DATA_DIR=/backend/data
+    volumes:
+      - app_data:/backend/data
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    build:
+      context: ./backend
+    container_name: sih-worker
+    command: celery -A app.worker:celery_app worker --loglevel=info --pool=solo
+    environment:
+      - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/sih_ps57
+      - REDIS_URL=redis://redis:6379/0
+      - QUEUE_MODE=celery
+      - DATA_DIR=/backend/data
+    volumes:
+      - app_data:/backend/data
+    depends_on:
+      - postgres
+      - redis
+
   postgres:
     image: postgis/postgis:16-3.4
     container_name: sih-postgres
-
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: sih_ps57
-
     ports:
       - "15432:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: sih-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
 volumes:
   postgres_data:
+  redis_data:
+  app_data:

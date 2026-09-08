@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import Job, Survey, SurveyFile
 from ..schemas import SurveyCreate, SurveyRead, UploadResponse
-from ..services.jobs import process_job
+from ..services.queue import enqueue_job
 from ..storage import StorageError, save_upload
 
 
@@ -74,5 +74,5 @@ async def upload_sonar_file(
     db.add(job)
     db.commit()
     db.refresh(job)
-    background_tasks.add_task(process_job, job.id)
+    enqueue_job(job.id, background_tasks)
     return UploadResponse(file_id=pending_file.id, job_id=job.id, status=job.status)
