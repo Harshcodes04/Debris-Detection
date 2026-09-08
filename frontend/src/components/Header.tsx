@@ -1,7 +1,17 @@
 import { NavLink } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Radio } from 'lucide-react'
+import { getRegistry } from '../api'
 
 export function Header() {
+  // The telemetry read a fixed North Sea position that nothing set. Show the
+  // most recently recorded hazard instead, or say plainly that there is none.
+  const { data: hazards } = useQuery({ queryKey: ['registry'], queryFn: getRegistry })
+  const latest = hazards?.length ? hazards[hazards.length - 1] : null
+  const position = latest
+    ? `${Math.abs(latest.lat).toFixed(4)}°${latest.lat >= 0 ? 'N' : 'S'} • ` +
+      `${Math.abs(latest.lon).toFixed(4)}°${latest.lon >= 0 ? 'E' : 'W'}`
+    : 'NO SURVEY LOADED'
   const navItems = [
     { label: 'Detect', path: '/detect' },
     { label: 'Registry', path: '/hazards' },
@@ -63,16 +73,16 @@ export function Header() {
           {/* Survey Telemetry */}
           <div className="rounded-lg border border-[#141f36] bg-[#0a1122] px-3.5 py-1.5 text-right">
             <div className="text-[9px] uppercase tracking-wider text-[#64748b] font-semibold">
-              SURVEY TELEMETRY
+              LAST RECORDED HAZARD
             </div>
             <div className="text-[#00f2ff] font-bold text-xs tracking-tight">
-              LAT 54°22'N • LON 03°18'E
+              {position}
             </div>
           </div>
 
           {/* SSS Frequency Badge */}
           <div className="rounded-lg border border-[#141f36] bg-[#0a1122] px-3.5 py-2 text-[#00f2ff] font-bold text-xs tracking-wider">
-            120 kHz SSS
+            2 HEADS · YOLOV8S
           </div>
         </div>
       </div>
