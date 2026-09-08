@@ -1,0 +1,39 @@
+# SIH PS57 - side-scan sonar anomaly detection
+#
+# Python 3.11. Not 3.12+, and definitely not 3.14 - PyTorch has no wheels for
+# it, so `pip install torch` there fails or silently pulls nothing usable.
+#
+#   py -3.11 -m venv .venv
+#   .venv\Scripts\activate
+#   pip install -r requirements.txt
+#
+# CPU-only torch is the default below and is what the demo runs on: ~200 ms per
+# image, no GPU, no CUDA install. For training, replace the index URL with the
+# CUDA build matching your driver.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.14.0
+torchvision==0.29.0
+
+# detection: training, inference and ONNX export
+ultralytics==8.4.142
+
+# reads raw XTF survey files - imagery plus per-ping navigation.
+# Without this the pipeline still detects, but every position is simulated.
+pyxtf==1.5.0
+
+numpy==2.4.6
+pillow==12.3.0
+pyyaml==6.0.3
+
+# ultralytics pulls these in itself, pinned here so a fresh install is
+# reproducible rather than whatever resolved that day
+opencv-python==5.0.0.93
+matplotlib==3.11.1
+
+# Not required to run the demo:
+#   onnx, onnxruntime   only for verifying an ONNX export against the .pt
+#                       checkpoint (ml/export/export_onnx.py)
+#
+# Not required at all - enrichment uses urllib from the standard library, and
+# GEBCO and OBIS need no API key.
