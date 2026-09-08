@@ -30,6 +30,13 @@ Set SIH_WEIGHTS_DIR if you keep them somewhere else.
 
 1. DETECTION            pipeline.py --live   (or double-click run.bat)
 
+Takes an image, or a raw .xtf survey file. On an XTF the navigation, slant
+range and altitude are read from the ping headers, so the coordinates and the
+sizes in metres are measured rather than assumed, and --range and --altitude
+are ignored. Inspect a survey file on its own with:
+
+     python -m ml.xtf survey.xtf
+
 Two heads run on every image and their detections merge:
 
   wreck      shipwrecks, submerged aircraft     mAP50 0.625, precision 0.923

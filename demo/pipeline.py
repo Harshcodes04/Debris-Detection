@@ -40,6 +40,8 @@ from ml.enrich import enrich_detection, to_dict as ctx_dict   # noqa: E402
 from ml.risk import score_detection, to_dict as risk_dict     # noqa: E402
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
+SURVEY_SUFFIXES = {".xtf"}          # raw survey files carry their own navigation
+READABLE = IMAGE_SUFFIXES | SURVEY_SUFFIXES
 
 
 def resolve_image(raw: str) -> Path | None:
@@ -50,15 +52,15 @@ def resolve_image(raw: str) -> Path | None:
         return None
     if path.is_dir():
         found = [f for f in sorted(path.iterdir())
-                 if f.suffix.lower() in IMAGE_SUFFIXES]
+                 if f.suffix.lower() in READABLE]
         if not found:
             print(f"  no images in that folder: {path}")
             return None
         pick = random.choice(found)
         print(f"  (folder given - picked {pick.name} from {len(found)} images)")
         return pick
-    if path.suffix.lower() not in IMAGE_SUFFIXES:
-        print(f"  not an image file: {path.name}")
+    if path.suffix.lower() not in READABLE:
+        print(f"  not a sonar image or survey file: {path.name}")
         return None
     return path
 
@@ -92,8 +94,22 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
     import numpy as np
     from PIL import Image, ImageDraw
 
-    arr = np.array(Image.open(image_path).convert("L"), dtype=np.uint8)
-    sonar = SonarImage(image=arr, image_id=image_path.stem)
+    line = None
+    if image_path.suffix.lower() in SURVEY_SUFFIXES:
+        from ml.xtf import read_xtf
+
+        line = read_xtf(image_path)
+        sonar = line.sonar
+        # The detector and the overlay both read a file from disk, so the
+        # waterfall this survey builds is written out once and used as the
+        # image from here on.
+        rendered = HERE / "reports"
+        rendered.mkdir(exist_ok=True)
+        image_path = rendered / f"{sonar.image_id}_waterfall.png"
+        Image.fromarray(sonar.image).save(image_path)
+    else:
+        arr = np.array(Image.open(image_path).convert("L"), dtype=np.uint8)
+        sonar = SonarImage(image=arr, image_id=image_path.stem)
 
     # --- run every head ---------------------------------------------------
     detections, per_head, total_ms = [], {}, 0.0
@@ -117,7 +133,17 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
     # range has to match the imagery. 75 m per channel suits a towed survey;
     # the ghost-pot imagery is shallow-bay consumer sonar where ~13 m is
     # realistic, and using the wrong one reports a 1 m crab pot as 15 m.
-    attach_track(sonar, slant_range_m=slant_range_m, altitude_m=altitude_m)
+    if line is not None:
+        # The file carries its own track, its own slant range and its own
+        # altitude. --range and --altitude are assumptions for imagery that has
+        # none, and applying them here would replace measurements with guesses.
+        navigation_is_real = True
+        nav_source = (f"REAL - XTF ping headers: {line.n_fixes} fixes, "
+                      f"{line.interpolated} interpolated, {line.dropped} rejected")
+    else:
+        attach_track(sonar, slant_range_m=slant_range_m, altitude_m=altitude_m)
+        navigation_is_real = False
+        nav_source = "SIMULATED survey track (no raw XTF available)"
     detections = ReferencePostProcessor().georeference(detections, sonar)
 
     # --- context and recovery priority (optional) -------------------------
@@ -129,12 +155,14 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
     if enrich:
         for det in detections:
             ctx = enrich_detection(det.get("lat"), det.get("lon"),
-                                   navigation_is_real=True)
+                                   navigation_is_real=navigation_is_real)
             det["context"] = ctx_dict(ctx)
             det["risk"] = risk_dict(
                 score_detection(det["class"], det["confidence"], ctx))
             if det["context"]:
                 det["context"]["position_source"] = (
+                    "REAL - read from the survey file's ping headers"
+                    if navigation_is_real else
                     "SIMULATED - these lookups are real but the coordinate "
                     "they were made at is not")
 
@@ -148,7 +176,7 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
     }
     report = build_report(
         result, survey_name=survey,
-        navigation_source="SIMULATED survey track (no raw XTF available)",
+        navigation_source=nav_source,
         model_version="+".join(models),
     )
 
