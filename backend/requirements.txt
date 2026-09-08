@@ -10,3 +10,15 @@ python-dotenv>=1.0,<2.0
 # Development and test dependencies
 httpx>=0.27,<1.0
 pytest>=8.0,<9.0
+
+# ML Dependencies
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.0
+torchvision==0.29.0
+ultralytics==8.4.142
+pyxtf==1.5.0
+numpy==2.4.6
+pillow==12.3.0
+pyyaml==6.0.3
+opencv-python==5.0.0.93
+matplotlib==3.11.1
