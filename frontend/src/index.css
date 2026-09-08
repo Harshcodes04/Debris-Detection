@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background-color: #040711;
+  color: #e2e8f0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(0, 242, 255, 0.05) 0%, transparent 60%),
+    radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.03) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Custom sonar grid pattern background */
+.sonar-grid-bg {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(30, 45, 74, 0.25) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 45, 74, 0.25) 1px, transparent 1px);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #070d1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e2d4a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3f66;
+}
+
+/* Leaflet dark styling overrides */
+.leaflet-container {
+  background: #070d1a !important;
+  font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #0d1527 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #1e2d4a !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: #0d1527 !important;
+  border: 1px solid #1e2d4a !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: #0d1527 !important;
+  color: #00f2ff !important;
+  border-color: #1e2d4a !important;
+}
+
+.leaflet-control-attribution {
+  background-color: rgba(7, 13, 26, 0.8) !important;
+  color: #64748b !important;
+}
+
+.leaflet-control-attribution a {
+  color: #38bdf8 !important;
+}
+
+/* Monospace font utility */
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Dark mode Leaflet tile styling */
+.dark-map-tiles .leaflet-tile {
+  filter: brightness(0.65) invert(1) contrast(2.5) hue-rotate(190deg) saturate(0.4);
+}
+
