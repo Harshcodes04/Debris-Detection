@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    image: sih-backend
     container_name: sih-api
     ports:
       - "8000:8000"
@@ -15,13 +16,13 @@ services:
     volumes:
       - app_data:/app/data
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   worker:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: sih-backend
     container_name: sih-worker
     command: celery -A app.worker:celery_app worker --loglevel=info --pool=solo
     environment:
@@ -32,8 +33,10 @@ services:
     volumes:
       - app_data:/app/data
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   postgres:
     image: postgis/postgis:16-3.4
@@ -46,6 +49,11 @@ services:
       - "15432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sih_ps57"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
   redis:
     image: redis:7-alpine

@@ -1,0 +1,23 @@
+# Git internals — never send to the Docker daemon
+.git
+
+# Frontend build artifacts — not needed in the backend image
+frontend/node_modules
+frontend/dist
+frontend/.vite
+
+# Demo output — potentially large, not needed in the image
+demo/reports
+
+# Local data directory
+data
+
+# Python cache
+**/__pycache__
+**/*.pyc
+**/*.pyo
+*.egg-info
+
+# Local env files
+.env
+**/.env
