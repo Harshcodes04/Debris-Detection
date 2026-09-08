@@ -54,15 +54,22 @@ def test_upload_processing_and_exports(client: TestClient) -> None:
     assert job_response.json()["status"] == "done"
     assert job_response.json()["progress"] == 100
 
+    # 000346.jpg is a shipwreck in sand ripples - the wreck head finds it at
+    # about 0.90. "debris" is not in the frozen class list at all; asserting it
+    # only passed while inference was mocked.
     detections_response = client.get(
-        f"/api/jobs/{job_id}/detections", params={"class": "debris", "min_conf": 0.8}
+        f"/api/jobs/{job_id}/detections", params={"class": "wreck", "min_conf": 0.8}
     )
     assert detections_response.status_code == 200
     assert detections_response.json()["total"] == 1
-    assert detections_response.json()["items"][0]["bbox"] == [320.0, 220.0, 144.0, 96.0]
+    # Box position, not its exact pixels - the numbers move with the weights
+    # and the torch version, and a test that pins them breaks on every retrain.
+    x, y, w, h = detections_response.json()["items"][0]["bbox"]
+    assert 100 < x < 160 and 110 < y < 160
+    assert 70 < w < 130 and 250 < h < 320
 
     summary_response = client.get(f"/api/jobs/{job_id}/summary")
-    assert summary_response.json()["by_class"] == {"debris": 1}
+    assert summary_response.json()["by_class"] == {"wreck": 1}
 
     image_response = client.get(f"/api/jobs/{job_id}/image")
     assert image_response.status_code == 200
