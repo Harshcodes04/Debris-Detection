@@ -31,6 +31,10 @@ Two heads run on every image and their detections merge:
   wreck      shipwrecks, submerged aircraft     mAP50 0.625, precision 0.923
   ghostgear  derelict crab pots (ghost gear)    mAP50 0.310, precision 0.293
 
+EVALUATION.md breaks the ghostgear model down image by image on its held-out
+split - where the misses are, how it behaves on empty seabed, and why the
+confidence score cannot be used to rank detections for review.
+
 Each detection gets a latitude/longitude, size in metres and confidence, and a
 JSON + CSV report is written into reports/, plus a raw-vs-detected
 comparison picture.
