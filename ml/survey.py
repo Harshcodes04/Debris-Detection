@@ -26,6 +26,12 @@ DEMO_ORIGIN = (12.9231, 74.6012)
 KNOTS_TO_MS = 0.514444
 
 
+# A towfish flies at about 10-20% of its range off the seabed. 0.16 keeps the
+# long-standing 75 m default at exactly 12 m altitude, so nothing that was
+# tuned against it moves.
+ALTITUDE_FRACTION_OF_RANGE = 0.16
+
+
 def synthetic_track(
     n_pings: int,
     *,
@@ -33,15 +39,29 @@ def synthetic_track(
     heading_deg: float = 45.0,
     speed_knots: float = 4.0,
     ping_rate_hz: float = 10.0,
-    altitude_m: float = 12.0,
+    altitude_m: float | None = None,
     slant_range_m: float = 75.0,
     turn_rate_deg_per_ping: float = 0.0,
 ) -> list[NavRecord]:
     """Build a straight (or gently turning) survey line, one record per ping.
 
     Defaults are typical for a shallow-water debris survey: 4 knots, 10 pings
-    per second, 12 m altitude, 75 m range per channel giving a 150 m swath.
+    per second, 75 m range per channel giving a 148 m swath.
+
+    Altitude follows the range unless you set it. A towfish is flown at roughly
+    10-20% of its range above the seabed - high enough to see, low enough to
+    throw the shadows that separate a man-made object from a rock. Pinning it
+    at one value while the range varies is what produces impossible geometry:
+    12 m altitude under a 13 m range is an 8 degree grazing angle, which
+    collapses the swath and silently shrinks every reported object with it.
     """
+    if altitude_m is None:
+        altitude_m = ALTITUDE_FRACTION_OF_RANGE * slant_range_m
+    if altitude_m >= slant_range_m:
+        raise ValueError(
+            f"altitude {altitude_m:g} m is not below slant range "
+            f"{slant_range_m:g} m - nothing is imaged"
+        )
     lat, lon = origin
     heading = heading_deg
     along_track_m = speed_knots * KNOTS_TO_MS / ping_rate_hz   # metres per ping

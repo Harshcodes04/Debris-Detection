@@ -87,7 +87,7 @@ def _before_after(original: Path, annotated: Path, out: Path, n: int) -> Path:
 
 
 def process(image_path: Path, models, survey="DEMO-LINE-01",
-            conf_override=None, show=True, slant_range_m=75.0,
+            conf_override=None, show=True, slant_range_m=75.0, altitude_m=None,
             enrich=False) -> dict:
     import numpy as np
     from PIL import Image, ImageDraw
@@ -117,7 +117,7 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
     # range has to match the imagery. 75 m per channel suits a towed survey;
     # the ghost-pot imagery is shallow-bay consumer sonar where ~13 m is
     # realistic, and using the wrong one reports a 1 m crab pot as 15 m.
-    attach_track(sonar, slant_range_m=slant_range_m)
+    attach_track(sonar, slant_range_m=slant_range_m, altitude_m=altitude_m)
     detections = ReferencePostProcessor().georeference(detections, sonar)
 
     # --- context and recovery priority (optional) -------------------------
@@ -227,6 +227,11 @@ def main() -> int:
                     help="run a single head instead of both")
     ap.add_argument("--conf", type=float, default=None,
                     help="override the per-head confidence threshold")
+    ap.add_argument("--altitude", type=float, default=None, dest="altitude_m",
+                    help="height of the sonar above the seabed, metres. "
+                         "Defaults to 16%% of --range, the usual towing height. "
+                         "Set it when you know it: with --range it decides the "
+                         "ground swath, and the swath decides reported sizes.")
     ap.add_argument("--survey", default="DEMO-LINE-01")
     ap.add_argument("--range", type=float, default=75.0, dest="slant_range",
                     help="sonar slant range per channel, metres. Sets the "
@@ -263,7 +268,7 @@ def main() -> int:
         if image is None:
             return 1
         process(image, models, args.survey, args.conf, show,
-                args.slant_range, args.enrich)
+                args.slant_range, args.altitude_m, args.enrich)
         return 0
 
     print("  ENTER      random image      <path>   specific image      q   quit\n")
@@ -279,7 +284,7 @@ def main() -> int:
         if image is None:
             continue
         process(image, models, args.survey, args.conf, show,
-                args.slant_range, args.enrich)
+                args.slant_range, args.altitude_m, args.enrich)
         print()
 
 
