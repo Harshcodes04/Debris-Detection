@@ -33,15 +33,36 @@ ROOT = HERE.parent
 sys.path.insert(0, str(ROOT))
 
 from ml.pipeline import HEADS, load_models                    # noqa: E402
-from ml.interfaces import SonarImage, ReferencePostProcessor  # noqa: E402
+from ml.interfaces import SonarImage, ReferencePostProcessor, _nms  # noqa: E402
 from ml.survey import attach_track                            # noqa: E402
 from ml.report import build_report, write_json, write_csv     # noqa: E402
 from ml.enrich import enrich_detection, to_dict as ctx_dict   # noqa: E402
 from ml.risk import score_detection, to_dict as risk_dict     # noqa: E402
 
+TILE_PX = 640           # the size the model was trained at
+TILE_OVERLAP = 0.20     # so a target on a seam is whole in the next tile
+
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 SURVEY_SUFFIXES = {".xtf"}          # raw survey files carry their own navigation
 READABLE = IMAGE_SUFFIXES | SURVEY_SUFFIXES
+
+
+def along_track_bands(height: int, size: int = TILE_PX,
+                      overlap: float = TILE_OVERLAP) -> list[tuple[int, int]]:
+    """Split a tall waterfall into overlapping bands.
+
+    A survey line is a few hundred pixels wide and thousands of pings long.
+    Handed to the model whole, it is squashed to a square and a one-metre crab
+    pot becomes a few pixels of nothing - a 4083-ping line returned zero
+    detections that way, while the same file tiled returns nine.
+    """
+    if height <= size * 1.5:
+        return [(0, height)]
+    step = max(int(size * (1.0 - overlap)), 1)
+    tops = list(range(0, height - size + 1, step))
+    if tops[-1] + size < height:
+        tops.append(height - size)
+    return [(t, t + size) for t in tops]
 
 
 def resolve_image(raw: str) -> Path | None:
@@ -111,22 +132,31 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
         arr = np.array(Image.open(image_path).convert("L"), dtype=np.uint8)
         sonar = SonarImage(image=arr, image_id=image_path.stem)
 
-    # --- run every head ---------------------------------------------------
+    # --- run every head over every band -----------------------------------
+    bands = along_track_bands(sonar.height)
+    full = Image.open(image_path).convert("RGB")
+
     detections, per_head, total_ms = [], {}, 0.0
     for name, model in models.items():
         conf = conf_override if conf_override is not None else HEADS[name]["conf"]
+        found: list[dict] = []
         t0 = time.perf_counter()
-        r = model.predict(str(image_path), conf=conf, verbose=False)[0]
+        for top, bottom in bands:
+            tile = full if len(bands) == 1 else full.crop((0, top, sonar.width, bottom))
+            r = model.predict(tile, conf=conf, verbose=False)[0]
+            for b in r.boxes:
+                x1, y1, x2, y2 = [float(v) for v in b.xyxy[0]]
+                found.append({
+                    "class": r.names[int(b.cls)],
+                    "confidence": round(float(b.conf), 4),
+                    "bbox": [x1, y1 + top, x2 - x1, y2 - y1],   # back to full-image
+                    "head": name,
+                })
         total_ms += (time.perf_counter() - t0) * 1000
-        per_head[name] = len(r.boxes)
-        for b in r.boxes:
-            x1, y1, x2, y2 = [float(v) for v in b.xyxy[0]]
-            detections.append({
-                "class": r.names[int(b.cls)],
-                "confidence": round(float(b.conf), 4),
-                "bbox": [x1, y1, x2 - x1, y2 - y1],
-                "head": name,
-            })
+        # Bands overlap, so an object near a seam is found twice.
+        found = _nms(found, 0.5) if len(bands) > 1 else found
+        per_head[name] = len(found)
+        detections.extend(found)
 
     # --- pixels -> coordinates -------------------------------------------
     # Object size in metres falls straight out of the assumed swath, so the
@@ -201,7 +231,8 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
                   OUT / f"{stem}_compare.jpg", len(detections))
 
     # --- print ------------------------------------------------------------
-    print(f"  image    {image_path.name}   {sonar.width} x {sonar.height} px")
+    print(f"  image    {image_path.name}   {sonar.width} x {sonar.height} px"
+          + (f"  ({len(bands)} bands)" if len(bands) > 1 else ""))
     heads_str = "   ".join(f"{k}:{v}" for k, v in per_head.items())
     print(f"  heads    {heads_str}")
     print(f"  swath    {sonar.meta['swath_m']} m across track")
