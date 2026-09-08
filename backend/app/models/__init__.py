@@ -78,6 +78,17 @@ class Detection(Base):
     lon: Mapped[float | None] = mapped_column(Float, nullable=True)
     size_m: Mapped[float | None] = mapped_column(Float, nullable=True)
     frame_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    
+    # Enrichment context
+    depth_m: Mapped[float | None] = mapped_column(Float, nullable=True)
+    biodiversity_species: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    nearest_port_km: Mapped[float | None] = mapped_column(Float, nullable=True)
+    
+    # Risk
+    risk_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    risk_band: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    risk_reasons: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON serialized list
+    
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     job: Mapped[Job] = relationship(back_populates="detections")
@@ -89,4 +100,27 @@ Index(
     Detection.class_name,
     Detection.confidence,
 )
+
+
+class RegistryEntry(Base):
+    __tablename__ = "registry_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    hazard_id: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    class_name: Mapped[str] = mapped_column("class", String(100), nullable=False)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lon: Mapped[float] = mapped_column(Float, nullable=False)
+    
+    first_seen: Mapped[str] = mapped_column(String(30), nullable=False)
+    last_seen: Mapped[str] = mapped_column(String(30), nullable=False)
+    times_seen: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    consecutive_misses: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="present")
+    best_confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    surveys: Mapped[str] = mapped_column(Text, nullable=False, default="[]")  # JSON serialized list of survey names
+    note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
 
