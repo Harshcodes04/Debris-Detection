@@ -4,7 +4,7 @@ evaluate.py reports the aggregate. This reports one row per image, because a
 single mAP hides whether the misses are spread evenly or concentrated in a few
 hard scenes - and on this data they are not spread evenly.
 
-    python -m ml.eval.per_image --data path/to/crabpot_yolo --model ghostgear_model.pt
+    python -m ml.eval.per_image --data path/to/crabpot_yolo --model weights/ghostgear_model.pt
 
 Writes a CSV with, per image: how many targets it holds, how many detections
 the model made, TP/FP/FN, the best and mean-matched confidence, the median

@@ -33,7 +33,10 @@ from ml.contract import (
 from ml.detector import Detector
 from ml.interfaces import ReferencePostProcessor, ReferencePreprocessor
 
-_CONFIG_PATH = Path(__file__).resolve().parent.parent / "configs" / "inference.yaml"
+# The package sits at the repo root, so its parent IS the root: configs and
+# weights live beside the package, not inside it.
+_ROOT = Path(__file__).resolve().parents[1]
+_CONFIG_PATH = _ROOT / "configs" / "inference.yaml"
 _DETECTOR: Detector | None = None
 
 
@@ -41,7 +44,7 @@ _DETECTOR: Detector | None = None
 # the pipeline silently fell back to mock detections, which is the worst
 # possible default: the backend gets well-formed JSON full of invented objects
 # and nothing anywhere says it is fake.
-_DEFAULT_WEIGHTS = Path(__file__).resolve().parent.parent / "weights" / "sidescan_v1.pt"
+_DEFAULT_WEIGHTS = Path(os.getenv("SIH_WEIGHTS_DIR") or _ROOT / "weights") / "sidescan_model.pt"
 
 
 def load_config(path: str | Path | None = None) -> dict:

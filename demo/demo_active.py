@@ -17,8 +17,9 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).parent
-sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent))
 
+from ml.pipeline import load_models                                # noqa: E402
 from ml.active import rank_for_annotation, annotation_budget_note  # noqa: E402
 
 
@@ -37,10 +38,8 @@ def main() -> int:
         print(f"no images in {args.folder}")
         return 1
 
-    from ultralytics import YOLO
     print(f"scanning {len(images)} unlabelled images ...")
-    models = {"wreck": YOLO(str(HERE / "sidescan_model.pt")),
-              "ghostgear": YOLO(str(HERE / "ghostgear_model.pt"))}
+    models = load_models()
 
     ranked = rank_for_annotation(models, images, top_k=len(images))
     top = ranked[:args.top]

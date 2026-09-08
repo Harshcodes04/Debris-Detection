@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).parent
-sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent))
 
 from ml.registry import Registry                      # noqa: E402
 from ml.recovery import plan_recovery, day_plan       # noqa: E402
