@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
@@ -16,7 +17,18 @@ from .routers import jobs, surveys, reports, registry, recovery, active_learning
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     settings.ensure_directories()
-    Base.metadata.create_all(bind=engine)
+    # Retry DB connection — PostGIS runs extension setup after pg_isready
+    # returns healthy, so there's a brief window where connections can fail.
+    for attempt in range(10):
+        try:
+            Base.metadata.create_all(bind=engine)
+            break
+        except Exception as exc:
+            if attempt == 9:
+                raise
+            wait = 2 ** attempt  # 1s, 2s, 4s, 8s…
+            print(f"DB not ready (attempt {attempt + 1}/10): {exc}. Retrying in {wait}s…")
+            time.sleep(wait)
     yield
 
 
