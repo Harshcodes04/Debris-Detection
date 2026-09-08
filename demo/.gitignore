@@ -1,0 +1,10 @@
+# generated per run by pipeline.py
+reports/
+
+# generated per run by demo_planning.py
+risk_heatmap.geojson
+survey_map.html
+
+# python
+__pycache__/
+*.pyc
