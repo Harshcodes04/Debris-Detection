@@ -1,0 +1,7 @@
+data/*
+!data/README.md
+backend/.venv/
+backend/server*.log
+__pycache__/
+*.py[cod]
+
