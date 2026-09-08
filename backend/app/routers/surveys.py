@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -11,6 +12,17 @@ from ..storage import StorageError, save_upload
 
 
 router = APIRouter(prefix="/api/surveys", tags=["surveys"])
+
+
+@router.get("", response_model=list[SurveyRead])
+def list_surveys(
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> list[Survey]:
+    return db.scalars(
+        select(Survey).order_by(Survey.created_at.desc()).offset(offset).limit(limit)
+    ).all()
 
 
 @router.post("", response_model=SurveyRead, status_code=status.HTTP_201_CREATED)
@@ -64,4 +76,3 @@ async def upload_sonar_file(
     db.refresh(job)
     background_tasks.add_task(process_job, job.id)
     return UploadResponse(file_id=pending_file.id, job_id=job.id, status=job.status)
-

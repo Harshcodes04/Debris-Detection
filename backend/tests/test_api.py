@@ -20,6 +20,18 @@ def test_health(client: TestClient) -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_survey_history_and_error_shape(client: TestClient) -> None:
+    client.post("/api/surveys", json={"name": "History survey"})
+
+    surveys_response = client.get("/api/surveys")
+    assert surveys_response.status_code == 200
+    assert surveys_response.json()[0]["name"] == "History survey"
+
+    missing_job_response = client.get("/api/jobs/999999")
+    assert missing_job_response.status_code == 404
+    assert missing_job_response.json() == {"message": "Job not found"}
+
+
 def test_upload_processing_and_exports(client: TestClient) -> None:
     survey_response = client.post("/api/surveys", json={"name": "Demo survey"})
     assert survey_response.status_code == 201
