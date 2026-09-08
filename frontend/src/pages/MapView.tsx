@@ -155,7 +155,9 @@ export default function MapView() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-xl border border-line bg-panel/70 px-3 py-1.5 text-xs font-mono text-slate-300">
             <span className="h-2 w-2 rounded-full bg-wreck animate-pulse" />
-            Sector 4B Bathymetry
+            {hazards?.length
+              ? `${hazards.length} hazard${hazards.length === 1 ? '' : 's'} in registry`
+              : 'Registry empty'}
           </div>
         </div>
       </div>
