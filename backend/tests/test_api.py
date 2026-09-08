@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -37,9 +38,13 @@ def test_upload_processing_and_exports(client: TestClient) -> None:
     assert survey_response.status_code == 201
     survey_id = survey_response.json()["id"]
 
+    sample_path = Path(__file__).resolve().parent.parent.parent / "demo" / "samples" / "000346.jpg"
+    with open(sample_path, "rb") as f:
+        image_bytes = f.read()
+
     upload_response = client.post(
         f"/api/surveys/{survey_id}/upload",
-        files={"file": ("sample.png", b"fake-image-data", "image/png")},
+        files={"file": ("000346.jpg", image_bytes, "image/jpeg")},
     )
     assert upload_response.status_code == 202
     job_id = upload_response.json()["job_id"]

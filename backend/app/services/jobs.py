@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import redis
+import traceback
 from datetime import datetime
 
 from sqlalchemy import delete
