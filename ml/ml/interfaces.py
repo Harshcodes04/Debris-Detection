@@ -85,15 +85,29 @@ class ReferencePreprocessor:
         from pathlib import Path
 
         path = Path(file_path)
-        if path.suffix.lower() in {".xtf", ".jsf", ".segy", ".sgy"}:
+
+        if path.suffix.lower() == ".xtf":
+            # Real survey file: comes back with navigation from the ping
+            # headers, so anything downstream that needs a real position works.
+            from .xtf import read_xtf
+
+            return read_xtf(path).sonar
+
+        if path.suffix.lower() in {".jsf", ".segy", ".sgy"}:
             raise NotImplementedError(
-                "Raw sonar reading is Priyanshu's read_xtf() (step A3.1). "
-                "Point the pipeline at a preprocessed PNG/JPG until it lands."
+                f"{path.suffix} is not read yet - only XTF. Convert it, or "
+                "point the pipeline at a preprocessed PNG/JPG."
             )
+
         from PIL import Image
 
+        # An image file carries no navigation. It is detectable but not
+        # geo-referenceable, and the caller has to attach a track before any
+        # coordinate means anything.
         arr = np.array(Image.open(path).convert("L"), dtype=np.uint8)
-        return SonarImage(image=arr, image_id=path.stem)
+        sonar = SonarImage(image=arr, image_id=path.stem)
+        sonar.meta["navigation"] = "NONE (image file carries no ping headers)"
+        return sonar
 
     def tile(self, sonar: SonarImage, size: int, overlap: float) -> list[Tile]:
         step = max(1, int(size * (1.0 - overlap)))

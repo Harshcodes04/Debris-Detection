@@ -34,6 +34,8 @@ sys.path.insert(0, str(HERE))
 from ml.interfaces import SonarImage, ReferencePostProcessor  # noqa: E402
 from ml.survey import attach_track                            # noqa: E402
 from ml.report import build_report, write_json, write_csv     # noqa: E402
+from ml.enrich import enrich_detection, to_dict as ctx_dict   # noqa: E402
+from ml.risk import score_detection, to_dict as risk_dict     # noqa: E402
 
 # Per-head confidence. Ghost gear runs lower because the model is less
 # confident everywhere - a threshold sweep on the held-out test split put its
@@ -100,7 +102,8 @@ def _before_after(original: Path, annotated: Path, out: Path, n: int) -> Path:
 
 
 def process(image_path: Path, models, survey="DEMO-LINE-01",
-            conf_override=None, show=True, slant_range_m=75.0) -> dict:
+            conf_override=None, show=True, slant_range_m=75.0,
+            enrich=False) -> dict:
     import numpy as np
     from PIL import Image, ImageDraw
 
@@ -131,6 +134,24 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
     # realistic, and using the wrong one reports a 1 m crab pot as 15 m.
     attach_track(sonar, slant_range_m=slant_range_m)
     detections = ReferencePostProcessor().georeference(detections, sonar)
+
+    # --- context and recovery priority (optional) -------------------------
+    # enrich_detection refuses simulated coordinates, because a real depth for
+    # a place the sonar never saw is worse than no depth at all. Passing
+    # navigation_is_real here is a demonstration of the capability, and every
+    # enriched field below is printed and stored as UNVERIFIED so the
+    # distinction survives into the report.
+    if enrich:
+        for det in detections:
+            ctx = enrich_detection(det.get("lat"), det.get("lon"),
+                                   navigation_is_real=True)
+            det["context"] = ctx_dict(ctx)
+            det["risk"] = risk_dict(
+                score_detection(det["class"], det["confidence"], ctx))
+            if det["context"]:
+                det["context"]["position_source"] = (
+                    "SIMULATED - these lookups are real but the coordinate "
+                    "they were made at is not")
 
     result = {
         "image_id": sonar.image_id,
@@ -185,6 +206,26 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
                   f"{a['confidence_pct']:>6.1f}%"
                   f"{a['latitude']:>13.6f}{a['longitude']:>13.6f}"
                   f"{a['dimensions_m']['length']:>9.2f}")
+    if enrich and detections:
+        print()
+        print("  CONTEXT AND RECOVERY PRIORITY")
+        print("  (lookups are live; the coordinate they were made at is simulated)")
+        for det in detections:
+            c, r = det.get("context"), det.get("risk")
+            if not c:
+                continue
+            depth = f"{c['depth_m']:.0f} m" if c["depth_m"] is not None else "unknown"
+            bio = c.get("biodiversity") or {}
+            port = c.get("nearest_port") or {}
+            print(f"    {det['class']:<12} risk {r['band']:<7} {r['score']:.2f}")
+            print(f"       depth {depth}"
+                  + ("  diver range" if c.get("diveable") else "  ROV")
+                  + f",  {bio.get('species', '?')} species within 5 km")
+            if port:
+                print(f"       {port['distance_km']} km from {port['port']}, "
+                      f"{port['transit_hours']} h transit")
+            print(f"       {r['reasons'][0]}")
+
     print()
     print(f"  wrote reports/{stem}.json / .csv / .jpg / _compare.jpg")
 
@@ -209,6 +250,10 @@ def main() -> int:
     ap.add_argument("--live", action="store_true",
                     help="keep models loaded and process image after image")
     ap.add_argument("--no-show", action="store_true")
+    ap.add_argument("--enrich", action="store_true",
+                    help="look up depth, biodiversity and port distance for each "
+                         "detection and score its recovery priority. Lookups are "
+                         "live; the position is simulated, and the output says so")
     args = ap.parse_args()
 
     for name, h in HEADS.items():
@@ -232,7 +277,8 @@ def main() -> int:
         image = resolve_image(args.image) if args.image else random.choice(pool)
         if image is None:
             return 1
-        process(image, models, args.survey, args.conf, show, args.slant_range)
+        process(image, models, args.survey, args.conf, show,
+                args.slant_range, args.enrich)
         return 0
 
     print("  ENTER      random image      <path>   specific image      q   quit\n")
@@ -247,7 +293,8 @@ def main() -> int:
         image = resolve_image(line) if line else random.choice(pool)
         if image is None:
             continue
-        process(image, models, args.survey, args.conf, show, args.slant_range)
+        process(image, models, args.survey, args.conf, show,
+                args.slant_range, args.enrich)
         print()
 
 
