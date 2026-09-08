@@ -94,6 +94,32 @@ export interface RecoveryPlan {
   on_site_hours: number
   total_hours: number | null
   notes: string[]
+  /** Present from /hazards/{id}/plan; the day-plan response omits them. */
+  risk?: HazardRisk | null
+  context?: HazardContext | null
+}
+
+/** Why this hazard scored what it did, not just the number. */
+export interface HazardRisk {
+  score: number
+  band: 'HIGH' | 'MEDIUM' | 'LOW'
+  reasons: string[]
+  components: { harm: number; ecology: number; access: number; certainty: number }
+}
+
+/** Looked up from the coordinate: GEBCO depth, OBIS records, nearest port. */
+export interface HazardContext {
+  depth_m: number | null
+  diveable: boolean | null
+  biodiversity: { species: number; records: number; datasets: number; radius_km: number } | null
+  nearest_port: {
+    port: string
+    distance_km: number
+    transit_hours: number
+    assumed_speed_knots: number
+    note: string
+  } | null
+  sources: string[]
 }
 
 /** POST /api/recovery/day-plan */

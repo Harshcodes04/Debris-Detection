@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Database, Search, ShieldAlert, MapPin } from 'lucide-react'
@@ -125,7 +126,11 @@ export default function Hazards() {
             <tbody className="divide-y divide-line/60">
               {filtered.map((h) => (
                 <tr key={h.hazard_id} className="hover:bg-marine-900/40 transition-colors">
-                  <td className="px-4 py-3 font-mono font-bold text-wreck">{h.hazard_id}</td>
+                  <td className="px-4 py-3 font-mono font-bold">
+                    <Link to={`/hazards/${h.hazard_id}`} className="text-wreck hover:underline">
+                      {h.hazard_id}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 font-semibold text-slate-200">{h.class}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={h.status} />
