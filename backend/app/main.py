@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from . import models
 from .config import settings
 from .db import Base, engine
-from .routers import jobs, surveys
+from .routers import jobs, surveys, reports, registry, recovery, active_learning
 
 
 @asynccontextmanager
@@ -35,6 +35,10 @@ app.add_middleware(
 )
 app.include_router(surveys.router)
 app.include_router(jobs.router)
+app.include_router(reports.router)
+app.include_router(registry.router)
+app.include_router(recovery.router)
+app.include_router(active_learning.router)
 
 
 @app.exception_handler(HTTPException)
