@@ -50,6 +50,9 @@ def build_report(
                                 "width": round(w), "height": round(h)},
                 "dimensions_m": {"length": d.get("size_m")},
                 "frame_index": d.get("frame_index"),
+                # present only when the pipeline ran with enrichment
+                **({"context": d["context"]} if d.get("context") else {}),
+                **({"risk": d["risk"]} if d.get("risk") else {}),
             }
         )
 
