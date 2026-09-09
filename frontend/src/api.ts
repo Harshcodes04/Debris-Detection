@@ -16,7 +16,10 @@ import type {
   UploadResponse,
 } from './types'
 
-const BASE = '/api'
+// In development Vite proxies /api to localhost:8000, so a relative base works.
+// Deployed to Vercel there is no proxy and no backend at that origin, so the
+// build needs to be told where the API is - VITE_API_BASE_URL, set at build time.
+const BASE = `${(import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')}/api`
 const TOKEN_KEY = 'sih.token'
 
 /** Kept in sessionStorage rather than localStorage: closing the tab ends the

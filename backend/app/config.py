@@ -10,11 +10,27 @@ DEFAULT_DATA_DIR = PROJECT_ROOT / "data"
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 
+def _normalise_db_url(url: str) -> str:
+    """Make a hosted DATABASE_URL usable by this stack.
+
+    Render, Heroku and others hand out `postgres://...`. SQLAlchemy 2.0 rejects
+    that scheme outright, and plain `postgresql://` selects psycopg2, which is
+    not what is installed here - the requirements pin psycopg 3. Both are
+    rewritten to name the driver explicitly, so the URL the platform provides
+    works without anyone having to edit it by hand.
+    """
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url[len("postgresql://"):]
+    return url
+
+
 class Settings:
     def __init__(self) -> None:
         self.data_dir = Path(os.getenv("DATA_DIR", str(DEFAULT_DATA_DIR))).resolve()
         default_database = f"sqlite:///{self.data_dir / 'debris.db'}"
-        self.database_url = os.getenv("DATABASE_URL", default_database)
+        self.database_url = _normalise_db_url(os.getenv("DATABASE_URL", default_database))
         self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
         self.queue_mode = os.getenv("QUEUE_MODE", "local").lower()
         self.max_upload_size_bytes = int(

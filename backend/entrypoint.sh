@@ -7,4 +7,8 @@ cd /app/backend
 echo "applying migrations..."
 alembic upgrade head
 cd /app
-exec "$@"
+
+# Render (and most PaaS) assign a port and expect the process to bind it. With a
+# hardcoded port the health check never answers and the deploy is marked failed.
+: "${PORT:=8000}"
+exec "$@" --port "$PORT"

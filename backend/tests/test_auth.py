@@ -255,3 +255,43 @@ def test_role_changes_take_effect(client):
     promoted = token_for(client, "promoted@sih.local", "a-viewer-password-1")
     assert client.post("/api/surveys", headers=auth(promoted),
                        json={"name": "after"}).status_code == 201
+
+
+def test_a_cross_origin_browser_can_send_its_token(client):
+    """Frontend on Vercel, API on Render: every authenticated call is
+    preflighted, and a preflight that does not allow Authorization fails before
+    the request is ever sent. Same-origin development never exercises this.
+
+    The middleware captures the origin list when the app is built, so this uses
+    whichever origin is configured rather than patching settings afterwards."""
+    from app.config import settings
+
+    origin = settings.cors_origins[0]
+    r = client.options("/api/registry", headers={
+        "Origin": origin,
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "authorization",
+    })
+    assert r.status_code == 200
+    assert "authorization" in r.headers.get("access-control-allow-headers", "").lower()
+    assert r.headers.get("access-control-allow-origin") == origin
+
+
+def test_an_unlisted_origin_is_refused(client):
+    r = client.options("/api/registry", headers={
+        "Origin": "https://not-ours.example",
+        "Access-Control-Request-Method": "GET",
+    })
+    assert r.headers.get("access-control-allow-origin") is None
+
+
+def test_hosted_database_urls_are_usable(monkeypatch):
+    """Render hands out postgres:// - SQLAlchemy 2.0 rejects that scheme, and
+    plain postgresql:// selects psycopg2, which is not what is installed."""
+    from app.config import _normalise_db_url
+
+    assert _normalise_db_url("postgres://u:p@h/db") == "postgresql+psycopg://u:p@h/db"
+    assert _normalise_db_url("postgresql://u:p@h/db") == "postgresql+psycopg://u:p@h/db"
+    # already correct, and sqlite, both left alone
+    assert _normalise_db_url("postgresql+psycopg://u:p@h/db") == "postgresql+psycopg://u:p@h/db"
+    assert _normalise_db_url("sqlite:///x.db") == "sqlite:///x.db"

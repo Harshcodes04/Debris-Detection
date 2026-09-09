@@ -90,7 +90,10 @@ app.add_middleware(
     # worth avoiding.
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    # Authorization has to be listed. With the frontend on one origin and the
+    # API on another, every authenticated call is preflighted, and a preflight
+    # that does not allow this header fails the request before it is sent.
+    allow_headers=["Authorization", "Content-Type"],
 )
 app.include_router(auth.router)
 app.include_router(surveys.router)
