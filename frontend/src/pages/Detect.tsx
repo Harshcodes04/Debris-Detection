@@ -114,7 +114,7 @@ export default function Detect() {
               Detect
             </h1>
             <span className="rounded-full border border-[#00f2ff]/40 bg-[#00f2ff]/10 text-[#00f2ff] font-mono text-xs px-3 py-0.5 font-semibold">
-              Acoustic SSS Pipeline v3.4
+              Contract v1.0.0
             </span>
           </div>
           <p className="mt-1 text-xs sm:text-sm text-[#8094b8]">
@@ -185,18 +185,18 @@ export default function Detect() {
               Drop a sonar image, or click to choose
             </h2>
             <p className="mt-1 text-xs font-mono text-[#64748b]">
-              PNG, JPG or TIFF • High-res Side-Scan waterfall files up to 250MB
+              PNG, JPG, TIFF or raw .XTF survey files, up to 100 MB
             </p>
           </label>
 
           {/* Dual Model Tags */}
           <div className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-2 font-mono text-xs">
             <div className="rounded-full border border-[#1e2d4a] bg-[#0a1122] px-3.5 py-1 text-[#00f2ff]">
-              Primary: <span className="font-bold text-white">YOLOv9-Marine SSS</span>
+              Wreck head: <span className="font-bold text-white">sidescan_v1</span>
             </div>
             <span className="text-[#64748b] font-bold">+</span>
             <div className="rounded-full border border-[#1e2d4a] bg-[#0a1122] px-3.5 py-1 text-[#00f2ff]">
-              Secondary: <span className="font-bold text-white">SAM-Sonar Mask Segmentation</span>
+              Ghost gear head: <span className="font-bold text-white">ghostgear_v1</span>
             </div>
           </div>
         </div>
@@ -361,7 +361,7 @@ export default function Detect() {
               RECENT SURVEY SWATHS
             </h2>
             <p className="text-xs text-[#64748b] mt-0.5">
-              Live waterfall survey frames fetched from hydrographic API
+              Surveys recorded by this system, newest last
             </p>
           </div>
         </div>
@@ -386,7 +386,7 @@ export default function Detect() {
                   <tr key={s.id} className="hover:bg-[#0a1122]/60 transition-colors font-mono">
                     <td className="px-4 py-4 font-bold text-[#00f2ff]">#{s.id}</td>
                     <td className="px-4 py-4 text-slate-200">{s.name}</td>
-                    <td className="px-4 py-4 text-slate-300">{s.uploaded_by || 'Operator'}</td>
+                    <td className="px-4 py-4 text-slate-300">{s.uploaded_by || '—'}</td>
                     <td className="px-4 py-4 text-[#8094b8]">{s.created_at}</td>
                     <td className="px-4 py-4 text-right">
                       <a
