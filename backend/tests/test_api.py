@@ -77,7 +77,14 @@ def test_upload_processing_and_exports(client: TestClient) -> None:
 
     image_response = client.get(f"/api/jobs/{job_id}/image")
     assert image_response.status_code == 200
-    assert image_response.headers["content-type"].startswith("image/svg+xml")
+    # Whatever the pipeline drew - the real one writes a PNG - the declared
+    # type has to match the bytes, or the browser refuses to render it.
+    content_type = image_response.headers["content-type"]
+    assert content_type.startswith("image/")
+    if content_type == "image/png":
+        assert image_response.content[:4] == bytes.fromhex("89504e47")
+    elif content_type == "image/svg+xml":
+        assert image_response.content.lstrip()[:4] == b"<svg"
 
     json_response = client.get(f"/api/jobs/{job_id}/export", params={"format": "json"})
     assert json_response.status_code == 200

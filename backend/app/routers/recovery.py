@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import RegistryEntry
 from ml.recovery import plan_recovery, day_plan
-from ml.enrich import enrich_detection
-from ml.risk import score_detection
+from ml.enrich import enrich_detection, to_dict as context_to_dict
+from ml.risk import score_detection, to_dict as risk_to_dict
 
 router = APIRouter(prefix="/api/recovery", tags=["recovery"])
 
@@ -35,7 +35,7 @@ def _get_plan_and_risk(e: RegistryEntry):
     )
     
     risk = score_detection(e.class_name, e.best_confidence, ctx)
-    return plan, risk.score
+    return plan, risk, ctx
 
 @router.get("/hazards/{hazard_id}/plan")
 def get_recovery_plan(hazard_id: str, db: Session = Depends(get_db)):
@@ -43,8 +43,15 @@ def get_recovery_plan(hazard_id: str, db: Session = Depends(get_db)):
     if not e:
         raise HTTPException(status_code=404, detail="Hazard not found")
         
-    plan, _ = _get_plan_and_risk(e)
-    return plan.to_dict()
+    plan, risk, ctx = _get_plan_and_risk(e)
+    # Depth, risk and the enrichment were computed to build the plan and then
+    # thrown away, which left the UI with nothing to show about a hazard beyond
+    # its class and its box. They cost nothing extra to return.
+    return {
+        **plan.to_dict(),
+        "risk": risk_to_dict(risk),
+        "context": context_to_dict(ctx),
+    }
 
 @router.post("/day-plan")
 def create_day_plan(req: DayPlanRequest, db: Session = Depends(get_db)):
@@ -54,8 +61,8 @@ def create_day_plan(req: DayPlanRequest, db: Session = Depends(get_db)):
         
     plans_with_risk = []
     for e in entries:
-        plan, risk_score = _get_plan_and_risk(e)
-        plans_with_risk.append((plan, risk_score))
+        plan, risk, _ctx = _get_plan_and_risk(e)
+        plans_with_risk.append((plan, risk.score))
         
     result = day_plan(plans_with_risk, hours_available=req.hours_available)
     return result
