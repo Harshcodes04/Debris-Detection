@@ -35,10 +35,47 @@ _SPECIES_CACHE: dict[tuple, dict | None] = {}
 
 # Nearest ports to the demo survey area. A real deployment reads these from a
 # port database; three is enough to show the mechanism.
+# Harbour entrances around the Indian coast, roughly to the kilometre - enough
+# to pick the right port and estimate a transit, not survey grade. Three ports
+# on one stretch of Karnataka meant a detection in the Bay of Bengal reported
+# New Mangalore 600 km away, across the peninsula by land.
+#
+# Major ports first, then the fishing harbours a recovery crew would actually
+# sail from, then the islands.
 PORTS = {
-    "New Mangalore": (12.9200, 74.8000),
-    "Malpe": (13.3500, 74.7000),
-    "Karwar": (14.8000, 74.1000),
+    # west coast - Gujarat to Kerala
+    "Okha": (22.47, 69.07),
+    "Porbandar": (21.63, 69.60),
+    "Deendayal (Kandla)": (22.98, 70.22),
+    "Veraval": (20.90, 70.37),
+    "Mumbai": (18.94, 72.84),
+    "Jawaharlal Nehru (Nhava Sheva)": (18.95, 72.95),
+    "Ratnagiri": (16.98, 73.30),
+    "Mormugao": (15.40, 73.80),
+    "Karwar": (14.80, 74.10),
+    "Malpe": (13.35, 74.70),
+    "New Mangalore": (12.92, 74.80),
+    "Beypore": (11.17, 75.80),
+    "Cochin": (9.97, 76.26),
+    "Neendakara (Kollam)": (8.93, 76.54),
+    # southern tip and Gulf of Mannar
+    "Colachel": (8.17, 77.25),
+    "Tuticorin": (8.75, 78.20),
+    "Rameswaram": (9.28, 79.31),
+    # east coast - Tamil Nadu to West Bengal
+    "Nagapattinam": (10.77, 79.85),
+    "Chennai": (13.10, 80.30),
+    "Kamarajar (Ennore)": (13.24, 80.33),
+    "Krishnapatnam": (14.25, 80.12),
+    "Kakinada": (16.93, 82.25),
+    "Visakhapatnam": (17.69, 83.28),
+    "Gopalpur": (19.27, 84.92),
+    "Paradip": (20.26, 86.68),
+    "Digha": (21.62, 87.52),
+    "Haldia": (22.03, 88.09),
+    # islands
+    "Port Blair": (11.68, 92.75),
+    "Kavaratti": (10.56, 72.64),
 }
 
 
