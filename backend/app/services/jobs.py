@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
+
 import redis
-import traceback
 from datetime import datetime
 
 from sqlalchemy import delete
@@ -14,6 +15,8 @@ from ml.inference import run_inference
 from ml.enrich import enrich_detection, Context, to_dict as ctx_dict
 from ml.risk import score_detection
 from .registry import RegistryService
+
+log = logging.getLogger(__name__)
 
 redis_client = redis.Redis.from_url(settings.redis_url)
 
@@ -97,12 +100,18 @@ def process_job(job_id: int) -> None:
         job.status = "done"
         job.finished_at = datetime.utcnow()
         db.commit()
-    except Exception:
+    except Exception as exc:
         db.rollback()
+        # The traceback names absolute paths, the account the service runs as and
+        # the installed library layout. It belongs in the log, not in an API
+        # response any client can read. The client gets the exception type and
+        # the job id, which is enough to report a fault and enough for an
+        # operator to find the entry.
+        log.exception("job %s failed", job_id)
         job = db.get(Job, job_id)
         if job is not None:
             job.status = "failed"
-            job.error = traceback.format_exc(limit=8)
+            job.error = f"{type(exc).__name__}: processing failed (job {job_id})"
             job.finished_at = datetime.utcnow()
             db.commit()
     finally:
