@@ -90,6 +90,14 @@ def get_summary(job_id: int, db: Session = Depends(get_db)) -> JobSummary:
     )
 
 
+OVERLAY_MEDIA_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+}
+
+
 @router.get("/{job_id}/image")
 def get_job_image(
     job_id: int,
@@ -104,7 +112,15 @@ def get_job_image(
     image_path = Path(job.overlay_path)
     if not image_path.is_file():
         raise HTTPException(status_code=404, detail="Processed image not found")
-    return FileResponse(image_path, media_type="image/png", filename="processed.png")
+    # The media type was fixed at SVG back when the overlay was a placeholder
+    # drawn as SVG. The real pipeline draws it with PIL and writes a PNG, so the
+    # browser was handed PNG bytes labelled as XML and refused to render them -
+    # which is why the frame came up broken. Take the type from the file.
+    media_type = OVERLAY_MEDIA_TYPES.get(image_path.suffix.lower())
+    if media_type is None:
+        raise HTTPException(status_code=415, detail="Unsupported overlay format")
+    return FileResponse(image_path, media_type=media_type,
+                        filename=f"overlay{image_path.suffix.lower()}")
 
 
 @router.get("/{job_id}/export")

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -8,6 +9,7 @@ import { STATUS_COLOUR } from '../types'
 import { Failed, Wrap } from '../components/Shell'
 
 export default function MapView() {
+  const navigate = useNavigate()
   const el = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const { data: hazards, error } = useQuery({ queryKey: ['registry'], queryFn: getRegistry })
@@ -21,16 +23,34 @@ export default function MapView() {
       className: 'dark-map-tiles',
     }).addTo(map.current)
 
+    // Leaflet measures the container once, at construction. This one is inside
+    // a flex column that has not been laid out yet, so it measures zero width -
+    // and a map zero pixels wide can only ever fit the whole world into it,
+    // whatever bounds it is given. Re-measure once laid out, and again whenever
+    // the container changes size.
+    // The risk grid is a backdrop, so it gets its own pane below the overlay
+    // pane the markers live in. Sharing a pane, the grid loaded last and drew
+    // on top, and every click on a hazard opened the grid cell's popup instead.
+    map.current.createPane('riskgrid')
+    const gridPane = map.current.getPane('riskgrid')
+    if (gridPane) gridPane.style.zIndex = '390'
+
+    const resize = () => map.current?.invalidateSize()
+    requestAnimationFrame(resize)
+    const observer = new ResizeObserver(resize)
+    observer.observe(el.current)
+
     fetch(heatmapUrl)
       .then((r) => (r.ok ? r.json() : null))
       .then((gj) => {
         if (!gj?.features?.length || !map.current) return
         L.geoJSON(gj, {
+          pane: 'riskgrid',
           style: (f) => ({
             color: '#f97316',
             weight: 1,
             fillColor: '#f97316',
-            fillOpacity: 0.1 + 0.45 * (f?.properties?.intensity ?? 0),
+            fillOpacity: 0.06 + 0.22 * (f?.properties?.intensity ?? 0),
           }),
           onEachFeature: (f, layer) =>
             layer.bindPopup(
@@ -46,6 +66,7 @@ export default function MapView() {
       .catch(() => undefined)
 
     return () => {
+      observer.disconnect()
       map.current?.remove()
       map.current = null
     }
@@ -55,6 +76,29 @@ export default function MapView() {
     if (!map.current || !hazards?.length) return
     const group = L.layerGroup().addTo(map.current)
     hazards.forEach((h) => {
+      const body = document.createElement('div')
+      body.style.cssText = 'font-family: sans-serif; font-size: 12px; color: #e2e8f0; min-width: 190px;'
+      body.innerHTML =
+        `<div style="color: #00f2ff; font-weight: bold; font-family: monospace; font-size: 13px;">${h.hazard_id}</div>` +
+        `<div style="margin-top: 4px;"><b>Class:</b> ${h.class}</div>` +
+        `<div><b>Status:</b> ${h.status}</div>` +
+        `<div><b>Sightings:</b> ${h.times_seen}×</div>` +
+        `<div><b>Last sighted:</b> ${h.last_seen}</div>` +
+        `<div style="margin-top: 4px; font-family: monospace; color: #94a3b8;">` +
+        `${h.lat.toFixed(6)}, ${h.lon.toFixed(6)}</div>`
+
+      // A link would reload the whole app and lose the router, so this drives
+      // the router directly.
+      const more = document.createElement('button')
+      more.type = 'button'
+      more.textContent = 'Full info →'
+      more.style.cssText =
+        'margin-top: 8px; width: 100%; cursor: pointer; border-radius: 6px;' +
+        'border: 1px solid rgba(0,242,255,0.35); background: rgba(0,242,255,0.10);' +
+        'color: #00f2ff; font-family: monospace; font-size: 11px; padding: 5px 8px;'
+      more.addEventListener('click', () => navigate(`/hazards/${h.hazard_id}`))
+      body.appendChild(more)
+
       L.circleMarker([h.lat, h.lon], {
         radius: 6 + Math.min(h.times_seen, 4) * 2,
         color: '#070d1a',
@@ -62,24 +106,34 @@ export default function MapView() {
         fillColor: STATUS_COLOUR[h.status] ?? '#94a3b8',
         fillOpacity: 0.9,
       })
-        .bindPopup(
-          `<div style="font-family: sans-serif; font-size: 12px; color: #e2e8f0;">` +
-          `<div style="color: #00f2ff; font-weight: bold; font-family: monospace;">${h.hazard_id}</div>` +
-          `<div><b>Class:</b> ${h.class}</div>` +
-          `<div><b>Status:</b> ${h.status}</div>` +
-          `<div><b>Sightings:</b> ${h.times_seen}×</div>` +
-          `<div><b>Last Sighted:</b> ${h.last_seen}</div>` +
-          `</div>`,
-        )
+        .bindPopup(body)
         .addTo(group)
     })
-    map.current.fitBounds(
-      L.latLngBounds(hazards.map((h) => [h.lat, h.lon] as [number, number])).pad(0.2),
-    )
+
+    // fitBounds divides by the container width, so on a container Leaflet still
+    // measures as zero it can only fit the whole world - which is what this map
+    // did: right centre, zoom 0. Wait for a real width before fitting.
+    //
+    // Everything from one survey line sits within metres of everything else, so
+    // the bounds are nearly a point; cap the zoom instead of slamming to the
+    // maximum, where there are no tiles.
+    const bounds = L.latLngBounds(hazards.map((h) => [h.lat, h.lon] as [number, number]))
+    let frame = 0
+    const fit = () => {
+      if (!map.current || !bounds.isValid()) return
+      map.current.invalidateSize()
+      if (map.current.getSize().x === 0) {
+        frame = requestAnimationFrame(fit)
+        return
+      }
+      map.current.fitBounds(bounds.pad(0.4), { maxZoom: 18 })
+    }
+    fit()
     return () => {
+      cancelAnimationFrame(frame)
       group.remove()
     }
-  }, [hazards])
+  }, [hazards, navigate])
 
   return (
     <Wrap wide>
@@ -101,7 +155,9 @@ export default function MapView() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-xl border border-line bg-panel/70 px-3 py-1.5 text-xs font-mono text-slate-300">
             <span className="h-2 w-2 rounded-full bg-wreck animate-pulse" />
-            Sector 4B Bathymetry
+            {hazards?.length
+              ? `${hazards.length} hazard${hazards.length === 1 ? '' : 's'} in registry`
+              : 'Registry empty'}
           </div>
         </div>
       </div>

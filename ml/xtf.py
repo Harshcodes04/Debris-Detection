@@ -290,3 +290,45 @@ def read_xtf(path: str | Path, *, max_pings: int | None = None) -> SurveyLine:
         frequency_hz=float(np.median(frequencies)) if frequencies else None,
         notes=notes,
     )
+
+
+def _main() -> int:
+    """Inspect a survey file without running anything else:
+
+        python -m ml.xtf survey.xtf
+    """
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Read an XTF survey file")
+    ap.add_argument("path")
+    ap.add_argument("--png", help="also write the waterfall image here")
+    args = ap.parse_args()
+
+    line = read_xtf(args.path)
+    print(line.summary())
+    print(f"  navigation   {line.n_fixes} fixes, {line.interpolated} interpolated, "
+          f"{line.dropped} rejected")
+    print(f"  geometry     {line.slant_range_m:g} m slant range, "
+          f"{line.mean_altitude_m:g} m altitude, "
+          f"{line.sonar.meta['swath_m']:g} m ground swath")
+    if line.frequency_hz:
+        print(f"  frequency    {line.frequency_hz / 1000:.1f} kHz")
+    if line.sonar.nav:
+        first, last = line.sonar.nav[0], line.sonar.nav[-1]
+        print(f"  track        {first.lat:.6f}, {first.lon:.6f}  ->  "
+              f"{last.lat:.6f}, {last.lon:.6f}")
+    print(f"  scale        {line.sonar.ground_range_per_px_m:.4f} m per pixel "
+          f"across track")
+    for note in line.notes:
+        print(f"  note         {note}")
+
+    if args.png:
+        from PIL import Image
+
+        Image.fromarray(line.sonar.image).save(args.png)
+        print(f"  wrote        {args.png}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_main())

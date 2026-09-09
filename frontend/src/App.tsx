@@ -1,17 +1,30 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Header } from './components/Header'
 import Dashboard from './pages/Dashboard'
 import Detect from './pages/Detect'
 import Hazards from './pages/Hazards'
+import HazardDetail from './pages/HazardDetail'
 import MapView from './pages/MapView'
 import Recovery from './pages/Recovery'
 import Annotate from './pages/Annotate'
 import About from './pages/About'
 
+/** The router leaves the scroll where it was, so following a link from a
+ *  scrolled page - the map, say - lands you halfway down the next one. */
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
+
 export default function App() {
   return (
     <div className="min-h-screen bg-[#040711] text-slate-100 antialiased font-sans flex flex-col">
       {/* Top Navigation Bar */}
+      <ScrollToTop />
       <Header />
 
       {/* Main Page Area */}
@@ -21,6 +34,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/detect" element={<Detect />} />
           <Route path="/hazards" element={<Hazards />} />
+          <Route path="/hazards/:id" element={<HazardDetail />} />
           <Route path="/map" element={<MapView />} />
           <Route path="/recovery" element={<Recovery />} />
           <Route path="/annotate" element={<Annotate />} />

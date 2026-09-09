@@ -31,31 +31,28 @@ from ml.contract import (
     validate_result,
 )
 from ml.detector import Detector
-from ml.interfaces import ReferencePostProcessor, ReferencePreprocessor
+from ml.interfaces import ReferencePostProcessor, ReferencePreprocessor, _iou
+from ml.pipeline import HEADS
 
 # The package sits at the repo root, so its parent IS the root: configs and
 # weights live beside the package, not inside it.
 _ROOT = Path(__file__).resolve().parents[1]
 _CONFIG_PATH = _ROOT / "configs" / "inference.yaml"
-_DETECTOR: Detector | None = None
+_DETECTORS: dict[str, tuple[Detector, float]] | None = None
 
 
-# Shipped weights, used when no config or env var overrides them. Without this
-# the pipeline silently fell back to mock detections, which is the worst
-# possible default: the backend gets well-formed JSON full of invented objects
-# and nothing anywhere says it is fake.
-_DEFAULT_WEIGHTS = Path(os.getenv("SIH_WEIGHTS_DIR") or _ROOT / "weights") / "sidescan_model.pt"
+# Which heads ship, and the confidence each runs at, comes from ml.pipeline so
+# the demo and the backend cannot disagree about it.
 
 
 def load_config(path: str | Path | None = None) -> dict:
     cfg_path = Path(path) if path else _CONFIG_PATH
     cfg = yaml.safe_load(cfg_path.read_text()) if cfg_path.exists() else {}
-    # Fall back to the shipped weights when none are configured OR when the
-    # configured path does not exist - a stale path in a config file is the
-    # usual way this ends up silently mocking.
-    configured = cfg.get("weights")
-    if (not configured or not Path(configured).exists()) and _DEFAULT_WEIGHTS.exists():
-        cfg["weights"] = str(_DEFAULT_WEIGHTS)
+    # A configured path that no longer exists is the usual way this ends up
+    # running something other than what it claims. Drop it and fall back to the
+    # shipped heads rather than carrying a stale path forward.
+    if cfg.get("weights") and not Path(cfg["weights"]).exists():
+        cfg.pop("weights")
     # env overrides let the backend container point at its own paths
     if os.getenv("SIH_ML_WEIGHTS"):
         cfg["weights"] = os.environ["SIH_ML_WEIGHTS"]
@@ -64,19 +61,81 @@ def load_config(path: str | Path | None = None) -> dict:
     return cfg
 
 
-def get_detector(cfg: dict | None = None) -> Detector:
-    """Loaded once per process. The worker should call this at startup so the
-    first upload of the demo is not the one that pays the model-load cost."""
-    global _DETECTOR
-    if _DETECTOR is None:
-        cfg = cfg or load_config()
-        _DETECTOR = Detector(
-            weights=cfg.get("weights"),
-            conf=cfg.get("conf_threshold", 0.25),
-            iou=cfg.get("iou_threshold", 0.45),
-            imgsz=cfg.get("imgsz", INPUT_IMAGE_SIZE),
+def get_detectors(cfg: dict | None = None) -> dict[str, tuple[Detector, float]]:
+    """Every detection head, loaded once per process.
+
+    Both heads have to run. A YOLO head only ever finds the classes it was
+    trained on, so the wreck head alone reports nothing at all on ghost-gear
+    imagery - which is the case the problem statement is actually about.
+
+    Each head keeps its own confidence: ghost gear is less confident everywhere
+    and runs at 0.20, the wreck head at 0.25. An explicit conf_threshold in the
+    config overrides both.
+
+    Setting `weights` (in the config or as SIH_ML_WEIGHTS) pins inference to
+    that single checkpoint instead, so a container can still be told exactly
+    what to run.
+
+    The worker should call this at startup, so the first upload of the demo is
+    not the one that pays the model-load cost.
+    """
+    global _DETECTORS
+    if _DETECTORS is not None:
+        return _DETECTORS
+
+    cfg = cfg or load_config()
+    common = {
+        "iou": cfg.get("iou_threshold", 0.45),
+        "imgsz": cfg.get("imgsz", INPUT_IMAGE_SIZE),
+    }
+    override = cfg.get("conf_threshold")
+
+    if cfg.get("weights"):
+        conf = 0.25 if override is None else override
+        _DETECTORS = {"custom": (Detector(weights=cfg["weights"], conf=conf, **common), conf)}
+        return _DETECTORS
+
+    heads: dict[str, tuple[Detector, float]] = {}
+    missing: list[str] = []
+    for name, spec in HEADS.items():
+        path = Path(spec["weights"])
+        if not path.exists():
+            missing.append(str(path))
+            continue
+        conf = spec["conf"] if override is None else override
+        heads[name] = (Detector(weights=str(path), conf=conf, **common), conf)
+
+    # A detector built with no weights returns mock detections, and mock output
+    # reaching the backend looks exactly like the real thing. Fail loudly here.
+    if not heads:
+        raise FileNotFoundError(
+            "no model weights found: " + ", ".join(missing)
+            + ". Set SIH_WEIGHTS_DIR, or SIH_ML_WEIGHTS to pin one checkpoint."
         )
-    return _DETECTOR
+    _DETECTORS = heads
+    return _DETECTORS
+
+
+def get_detector(cfg: dict | None = None) -> Detector:
+    """The first head. Kept for callers that only want one; prefer
+    get_detectors, which is what actually runs."""
+    return next(iter(get_detectors(cfg).values()))[0]
+
+
+def _merge_heads(per_head: list[list[dict]], iou_threshold: float) -> list[dict]:
+    """Fold every head's detections into one list.
+
+    Two heads can box the same object - a crab pot is a small bright return
+    with a shadow, which is also what a small wreck looks like. Keeping both
+    would report one object twice under two class names, so the more confident
+    box wins.
+    """
+    kept: list[dict] = []
+    for det in sorted((d for head in per_head for d in head),
+                      key=lambda d: d["confidence"], reverse=True):
+        if all(_iou(det["bbox"], k["bbox"]) < iou_threshold for k in kept):
+            kept.append(det)
+    return kept
 
 
 def run_inference(file_path: str, config: dict | None = None,
@@ -103,7 +162,7 @@ def run_inference(file_path: str, config: dict | None = None,
         raise FileNotFoundError(file_path)
 
     cfg = {**load_config(), **(config or {})}
-    detector = get_detector(cfg)
+    detectors = get_detectors(cfg)
     pre = ReferencePreprocessor()
     post = ReferencePostProcessor()
 
@@ -123,16 +182,22 @@ def run_inference(file_path: str, config: dict | None = None,
 
     report("inferred", 70)
     batch_size = cfg.get("batch_size", 16)
-    per_tile: list[list[dict]] = []
-    for i in range(0, len(tiles), batch_size):
-        chunk = tiles[i : i + batch_size]
-        per_tile.extend(detector.predict_tiles([t.image for t in chunk]))
+    stitch_iou = cfg.get("stitch_iou", 0.5)
 
-    merged = post.stitch(
-        list(zip(tiles, per_tile)), iou_threshold=cfg.get("stitch_iou", 0.3)
-    )
+    # Every head sees every tile. Each is thresholded at its own confidence
+    # before the heads are folded together, so a head that is less confident
+    # everywhere is not silently cut off by the other one's threshold.
+    per_head: list[list[dict]] = []
+    for head_detector, head_conf in detectors.values():
+        per_tile: list[list[dict]] = []
+        for i in range(0, len(tiles), batch_size):
+            chunk = tiles[i : i + batch_size]
+            per_tile.extend(head_detector.predict_tiles([t.image for t in chunk]))
+        stitched = post.stitch(list(zip(tiles, per_tile)), iou_threshold=stitch_iou)
+        per_head.append([d for d in stitched if d["confidence"] >= head_conf])
+
+    merged = _merge_heads(per_head, cfg.get("head_merge_iou", 0.55))
     merged = post.georeference(merged, sonar)
-    merged = [d for d in merged if d["confidence"] >= cfg.get("conf_threshold", 0.25)]
     merged = _clip_to_image(merged, sonar.width, sonar.height)
 
     overlay_path = None
@@ -147,7 +212,7 @@ def run_inference(file_path: str, config: dict | None = None,
         processing_ms=int((time.perf_counter() - started) * 1000),
         detections=[Detection.from_dict(d) for d in merged],
         overlay_path=overlay_path,
-        model_version=detector.version,
+        model_version="+".join(sorted(d.version for d, _ in detectors.values())),
     ).to_dict()
 
     validate_result(result)   # never hand the backend an off-contract payload

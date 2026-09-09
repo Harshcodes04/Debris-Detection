@@ -30,6 +30,13 @@ Set SIH_WEIGHTS_DIR if you keep them somewhere else.
 
 1. DETECTION            pipeline.py --live   (or double-click run.bat)
 
+Takes an image, or a raw .xtf survey file. On an XTF the navigation, slant
+range and altitude are read from the ping headers, so the coordinates and the
+sizes in metres are measured rather than assumed, and --range and --altitude
+are ignored. Inspect a survey file on its own with:
+
+     python -m ml.xtf survey.xtf
+
 Two heads run on every image and their detections merge:
 
   wreck      shipwrecks, submerged aircraft     mAP50 0.625, precision 0.923
@@ -45,9 +52,18 @@ comparison picture.
 
   ENTER at the prompt   random sample
   paste a path          specific image
-  --range 13            realistic swath for shallow-bay consumer sonar.
+  --range 13            realistic range for shallow-bay consumer sonar.
                         The 75 m default suits a towed survey and would report
                         a 1 m crab pot as 15 m.
+  --altitude 2          height above the seabed. Defaults to 16% of --range,
+                        which is where a towfish is actually flown. Range and
+                        altitude together fix the ground swath, and the swath
+                        is what turns a box in pixels into metres.
+
+                        On an image file both are assumptions, so treat the
+                        metres as indicative. On an XTF they are read from the
+                        ping headers and the sizes are real - which is the
+                        reason to demo with an XTF rather than a JPEG.
   --enrich              look up depth (GEBCO), species (OBIS) and port distance
                         for each detection, score its recovery priority and
                         estimate retrieval time. Needs a network. On an image

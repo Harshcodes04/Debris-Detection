@@ -33,13 +33,36 @@ ROOT = HERE.parent
 sys.path.insert(0, str(ROOT))
 
 from ml.pipeline import HEADS, load_models                    # noqa: E402
-from ml.interfaces import SonarImage, ReferencePostProcessor  # noqa: E402
+from ml.interfaces import SonarImage, ReferencePostProcessor, _nms  # noqa: E402
 from ml.survey import attach_track                            # noqa: E402
 from ml.report import build_report, write_json, write_csv     # noqa: E402
 from ml.enrich import enrich_detection, to_dict as ctx_dict   # noqa: E402
 from ml.risk import score_detection, to_dict as risk_dict     # noqa: E402
 
+TILE_PX = 640           # the size the model was trained at
+TILE_OVERLAP = 0.20     # so a target on a seam is whole in the next tile
+
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
+SURVEY_SUFFIXES = {".xtf"}          # raw survey files carry their own navigation
+READABLE = IMAGE_SUFFIXES | SURVEY_SUFFIXES
+
+
+def along_track_bands(height: int, size: int = TILE_PX,
+                      overlap: float = TILE_OVERLAP) -> list[tuple[int, int]]:
+    """Split a tall waterfall into overlapping bands.
+
+    A survey line is a few hundred pixels wide and thousands of pings long.
+    Handed to the model whole, it is squashed to a square and a one-metre crab
+    pot becomes a few pixels of nothing - a 4083-ping line returned zero
+    detections that way, while the same file tiled returns nine.
+    """
+    if height <= size * 1.5:
+        return [(0, height)]
+    step = max(int(size * (1.0 - overlap)), 1)
+    tops = list(range(0, height - size + 1, step))
+    if tops[-1] + size < height:
+        tops.append(height - size)
+    return [(t, t + size) for t in tops]
 
 
 def resolve_image(raw: str) -> Path | None:
@@ -50,15 +73,15 @@ def resolve_image(raw: str) -> Path | None:
         return None
     if path.is_dir():
         found = [f for f in sorted(path.iterdir())
-                 if f.suffix.lower() in IMAGE_SUFFIXES]
+                 if f.suffix.lower() in READABLE]
         if not found:
             print(f"  no images in that folder: {path}")
             return None
         pick = random.choice(found)
         print(f"  (folder given - picked {pick.name} from {len(found)} images)")
         return pick
-    if path.suffix.lower() not in IMAGE_SUFFIXES:
-        print(f"  not an image file: {path.name}")
+    if path.suffix.lower() not in READABLE:
+        print(f"  not a sonar image or survey file: {path.name}")
         return None
     return path
 
@@ -87,37 +110,70 @@ def _before_after(original: Path, annotated: Path, out: Path, n: int) -> Path:
 
 
 def process(image_path: Path, models, survey="DEMO-LINE-01",
-            conf_override=None, show=True, slant_range_m=75.0,
+            conf_override=None, show=True, slant_range_m=75.0, altitude_m=None,
             enrich=False) -> dict:
     import numpy as np
     from PIL import Image, ImageDraw
 
-    arr = np.array(Image.open(image_path).convert("L"), dtype=np.uint8)
-    sonar = SonarImage(image=arr, image_id=image_path.stem)
+    line = None
+    if image_path.suffix.lower() in SURVEY_SUFFIXES:
+        from ml.xtf import read_xtf
 
-    # --- run every head ---------------------------------------------------
+        line = read_xtf(image_path)
+        sonar = line.sonar
+        # The detector and the overlay both read a file from disk, so the
+        # waterfall this survey builds is written out once and used as the
+        # image from here on.
+        rendered = HERE / "reports"
+        rendered.mkdir(exist_ok=True)
+        image_path = rendered / f"{sonar.image_id}_waterfall.png"
+        Image.fromarray(sonar.image).save(image_path)
+    else:
+        arr = np.array(Image.open(image_path).convert("L"), dtype=np.uint8)
+        sonar = SonarImage(image=arr, image_id=image_path.stem)
+
+    # --- run every head over every band -----------------------------------
+    bands = along_track_bands(sonar.height)
+    full = Image.open(image_path).convert("RGB")
+
     detections, per_head, total_ms = [], {}, 0.0
     for name, model in models.items():
         conf = conf_override if conf_override is not None else HEADS[name]["conf"]
+        found: list[dict] = []
         t0 = time.perf_counter()
-        r = model.predict(str(image_path), conf=conf, verbose=False)[0]
+        for top, bottom in bands:
+            tile = full if len(bands) == 1 else full.crop((0, top, sonar.width, bottom))
+            r = model.predict(tile, conf=conf, verbose=False)[0]
+            for b in r.boxes:
+                x1, y1, x2, y2 = [float(v) for v in b.xyxy[0]]
+                found.append({
+                    "class": r.names[int(b.cls)],
+                    "confidence": round(float(b.conf), 4),
+                    "bbox": [x1, y1 + top, x2 - x1, y2 - y1],   # back to full-image
+                    "head": name,
+                })
         total_ms += (time.perf_counter() - t0) * 1000
-        per_head[name] = len(r.boxes)
-        for b in r.boxes:
-            x1, y1, x2, y2 = [float(v) for v in b.xyxy[0]]
-            detections.append({
-                "class": r.names[int(b.cls)],
-                "confidence": round(float(b.conf), 4),
-                "bbox": [x1, y1, x2 - x1, y2 - y1],
-                "head": name,
-            })
+        # Bands overlap, so an object near a seam is found twice.
+        found = _nms(found, 0.5) if len(bands) > 1 else found
+        per_head[name] = len(found)
+        detections.extend(found)
 
     # --- pixels -> coordinates -------------------------------------------
     # Object size in metres falls straight out of the assumed swath, so the
     # range has to match the imagery. 75 m per channel suits a towed survey;
     # the ghost-pot imagery is shallow-bay consumer sonar where ~13 m is
     # realistic, and using the wrong one reports a 1 m crab pot as 15 m.
-    attach_track(sonar, slant_range_m=slant_range_m)
+    if line is not None:
+        # The file carries its own track, its own slant range and its own
+        # altitude. --range and --altitude are assumptions for imagery that has
+        # none, and applying them here would replace measurements with guesses.
+        navigation_is_real = True
+        nav_source = (f"REAL - XTF ping headers: {line.n_fixes} fixes, "
+                      f"{line.interpolated} interpolated, {line.dropped} rejected")
+    else:
+        attach_track(sonar, slant_range_m=slant_range_m, altitude_m=altitude_m)
+        navigation_is_real = False
+        nav_source = "SIMULATED survey track (no raw XTF available)"
     detections = ReferencePostProcessor().georeference(detections, sonar)
 
     # --- context and recovery priority (optional) -------------------------
@@ -129,12 +185,14 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
     if enrich:
         for det in detections:
             ctx = enrich_detection(det.get("lat"), det.get("lon"),
-                                   navigation_is_real=True)
+                                   navigation_is_real=navigation_is_real)
             det["context"] = ctx_dict(ctx)
             det["risk"] = risk_dict(
                 score_detection(det["class"], det["confidence"], ctx))
             if det["context"]:
                 det["context"]["position_source"] = (
+                    "REAL - read from the survey file's ping headers"
+                    if navigation_is_real else
                     "SIMULATED - these lookups are real but the coordinate "
                     "they were made at is not")
 
@@ -148,7 +206,7 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
     }
     report = build_report(
         result, survey_name=survey,
-        navigation_source="SIMULATED survey track (no raw XTF available)",
+        navigation_source=nav_source,
         model_version="+".join(models),
     )
 
@@ -173,7 +231,8 @@ def process(image_path: Path, models, survey="DEMO-LINE-01",
                   OUT / f"{stem}_compare.jpg", len(detections))
 
     # --- print ------------------------------------------------------------
-    print(f"  image    {image_path.name}   {sonar.width} x {sonar.height} px")
+    print(f"  image    {image_path.name}   {sonar.width} x {sonar.height} px"
+          + (f"  ({len(bands)} bands)" if len(bands) > 1 else ""))
     heads_str = "   ".join(f"{k}:{v}" for k, v in per_head.items())
     print(f"  heads    {heads_str}")
     print(f"  swath    {sonar.meta['swath_m']} m across track")
@@ -227,6 +286,11 @@ def main() -> int:
                     help="run a single head instead of both")
     ap.add_argument("--conf", type=float, default=None,
                     help="override the per-head confidence threshold")
+    ap.add_argument("--altitude", type=float, default=None, dest="altitude_m",
+                    help="height of the sonar above the seabed, metres. "
+                         "Defaults to 16%% of --range, the usual towing height. "
+                         "Set it when you know it: with --range it decides the "
+                         "ground swath, and the swath decides reported sizes.")
     ap.add_argument("--survey", default="DEMO-LINE-01")
     ap.add_argument("--range", type=float, default=75.0, dest="slant_range",
                     help="sonar slant range per channel, metres. Sets the "
@@ -263,7 +327,7 @@ def main() -> int:
         if image is None:
             return 1
         process(image, models, args.survey, args.conf, show,
-                args.slant_range, args.enrich)
+                args.slant_range, args.altitude_m, args.enrich)
         return 0
 
     print("  ENTER      random image      <path>   specific image      q   quit\n")
@@ -279,7 +343,7 @@ def main() -> int:
         if image is None:
             continue
         process(image, models, args.survey, args.conf, show,
-                args.slant_range, args.enrich)
+                args.slant_range, args.altitude_m, args.enrich)
         print()
 
 
