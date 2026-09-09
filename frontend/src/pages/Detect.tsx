@@ -79,7 +79,13 @@ export default function Detect() {
           if (cancelled) return
           setDetections(page.items)
           setSummary(sum)
-          setPreview(`/api/jobs/${jobId}/image`)
+          // The overlay is behind the token, so it has to be fetched rather
+          // than pointed at with an <img src>.
+          try {
+            setPreview(await api.fetchBlobUrl(api.jobImagePath(jobId)))
+          } catch {
+            setPreview(null)
+          }
           setPhase('done')
         } else if (job.status === 'failed') {
           setError(new Error(job.error || 'Job processing failed'))
@@ -114,23 +120,23 @@ export default function Detect() {
             <h1 className="text-3xl font-bold tracking-tight text-white font-sans">
               Detect
             </h1>
-            <span className="rounded-full border border-[#00f2ff]/40 bg-[#00f2ff]/10 text-[#00f2ff] font-mono text-xs px-3 py-0.5 font-semibold">
+            <span className="text-xs text-[#6e6e75]">
               Contract v1.0.0
             </span>
           </div>
-          <p className="mt-1 text-xs sm:text-sm text-[#8094b8]">
-            Upload a side-scan sonar frame. Both detection heads run and their results merge.
+          <p className="mt-1 text-xs sm:text-sm text-[#8a8a91]">
+            Upload a frame or a raw survey file. Both heads run and their results merge.
           </p>
         </div>
 
         {/* Top-Right Mode Selector */}
         <div className="flex items-center gap-2">
-          <div className="rounded-full border border-[#141f36] bg-[#0a1122] p-1 flex items-center gap-1 font-mono text-xs text-[#8094b8]">
+          <div className="rounded-full border border-[#26262a] bg-[#161617] p-1 flex items-center gap-1 font-mono text-xs text-[#8a8a91]">
             <button
               onClick={() => setPhase('idle')}
               className={`px-3.5 py-1 rounded-full font-bold transition-all ${
                 phase === 'idle'
-                  ? 'bg-[#00f2ff] text-[#050914] shadow-[0_0_10px_rgba(0,242,255,0.3)]'
+                  ? 'bg-[#6d8bab] text-[#0c0c0d] shadow-[0_0_10px_rgba(0,242,255,0.3)]'
                   : 'hover:text-white'
               }`}
             >
@@ -139,7 +145,7 @@ export default function Detect() {
             <button
               className={`px-3.5 py-1 rounded-full transition-all ${
                 phase === 'done'
-                  ? 'bg-[#00f2ff] text-[#050914] font-bold shadow-[0_0_10px_rgba(0,242,255,0.3)]'
+                  ? 'bg-[#6d8bab] text-[#0c0c0d] font-bold shadow-[0_0_10px_rgba(0,242,255,0.3)]'
                   : 'hover:text-white'
               }`}
             >
@@ -152,7 +158,7 @@ export default function Detect() {
       {/* Hero Upload Dropzone Section */}
       {phase === 'idle' && (
         <div
-          className="relative rounded-2xl border border-dashed border-[#1e2d4a] bg-[#070c18] p-10 sm:p-14 text-center overflow-hidden flex flex-col items-center justify-center min-h-[380px] shadow-2xl group cursor-pointer hover:border-[#00f2ff]/60 transition-all"
+          className="relative rounded-md border border-dashed border-[#26262a] bg-[#070c18] p-10 sm:p-14 text-center overflow-hidden flex flex-col items-center justify-center min-h-[380px] shadow-none group cursor-pointer hover:border-[#6d8bab]/60 transition-all"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault()
@@ -160,13 +166,6 @@ export default function Detect() {
             if (f) void submit(f)
           }}
         >
-          {/* Background Concentric Radar Rings */}
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-15">
-            <div className="h-[450px] w-[450px] rounded-full border border-[#00f2ff]" />
-            <div className="absolute h-[320px] w-[320px] rounded-full border border-[#00f2ff] border-dashed" />
-            <div className="absolute h-[180px] w-[180px] rounded-full border border-[#00f2ff]" />
-          </div>
-
           {/* Central Glowing Upload Icon */}
           <label className="relative z-10 cursor-pointer flex flex-col items-center">
             <input
@@ -178,25 +177,25 @@ export default function Detect() {
                 if (f) void submit(f)
               }}
             />
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#00f2ff]/60 bg-[#00f2ff]/10 text-[#00f2ff] group-hover:scale-110 shadow-[0_0_25px_rgba(0,242,255,0.3)] transition-all">
-              <Upload className="h-8 w-8 text-[#00f2ff]" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-md border border-[#6d8bab]/60 bg-[#6d8bab]/10 text-[#6d8bab] group-hover:scale-110 shadow-[0_0_25px_rgba(0,242,255,0.3)] transition-all">
+              <Upload className="h-8 w-8 text-[#6d8bab]" />
             </div>
 
             <h2 className="mt-4 text-xl font-bold tracking-tight text-white font-sans">
               Drop a sonar image, or click to choose
             </h2>
-            <p className="mt-1 text-xs font-mono text-[#64748b]">
+            <p className="mt-1 text-xs font-mono text-[#6e6e75]">
               PNG, JPG, TIFF or raw .XTF survey files, up to 100 MB
             </p>
           </label>
 
           {/* Dual Model Tags */}
           <div className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-2 font-mono text-xs">
-            <div className="rounded-full border border-[#1e2d4a] bg-[#0a1122] px-3.5 py-1 text-[#00f2ff]">
+            <div className="rounded-full border border-[#26262a] bg-[#161617] px-3.5 py-1 text-[#6d8bab]">
               Wreck head: <span className="font-bold text-white">sidescan_v1</span>
             </div>
-            <span className="text-[#64748b] font-bold">+</span>
-            <div className="rounded-full border border-[#1e2d4a] bg-[#0a1122] px-3.5 py-1 text-[#00f2ff]">
+            <span className="text-[#6e6e75] font-bold">+</span>
+            <div className="rounded-full border border-[#26262a] bg-[#161617] px-3.5 py-1 text-[#6d8bab]">
               Ghost gear head: <span className="font-bold text-white">ghostgear_v1</span>
             </div>
           </div>
@@ -212,9 +211,9 @@ export default function Detect() {
       {phase === 'processing' && (
         <div className="py-12 space-y-4 max-w-md mx-auto text-center">
           <Loading what={`Running Model Inference… ${progress ? `${progress}%` : ''}`} />
-          <div className="h-2 w-full overflow-hidden rounded-full bg-[#0a1122] border border-[#141f36]">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-[#161617] border border-[#26262a]">
             <div
-              className="h-full bg-gradient-to-r from-[#00c6ff] to-[#00f2ff] transition-all duration-300 shadow-[0_0_10px_rgba(0,242,255,0.5)]"
+              className="h-full bg-gradient-to-r from-[#00c6ff] to-[#6d8bab] transition-all duration-300 shadow-[0_0_10px_rgba(0,242,255,0.5)]"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -227,15 +226,15 @@ export default function Detect() {
         <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
           {/* Main Sonar Image & Overlay Canvas */}
           <div className="space-y-6">
-            <div className="rounded-2xl border border-[#141f36] bg-[#070d1a] p-5 shadow-2xl">
+            <div className="rounded-md border border-[#26262a] bg-[#111112] p-5 shadow-none">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-[#00f2ff]" />
+                  <Eye className="h-4 w-4 text-[#6d8bab]" />
                   <span className="text-xs font-mono font-bold uppercase text-white tracking-wider">
                     Acoustic Sonar Visualizer
                   </span>
                 </div>
-                <span className="font-mono text-xs text-[#64748b]">
+                <span className="font-mono text-xs text-[#6e6e75]">
                   {fileName || 'Sonar Frame'}
                 </span>
               </div>
@@ -251,13 +250,13 @@ export default function Detect() {
             </div>
 
             {/* Detections Table */}
-            <div className="rounded-2xl border border-[#141f36] bg-[#070d1a] p-5 shadow-2xl">
+            <div className="rounded-md border border-[#26262a] bg-[#111112] p-5 shadow-none">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2 font-mono">
-                  <Layers className="h-4 w-4 text-[#00f2ff]" />
+                  <Layers className="h-4 w-4 text-[#6d8bab]" />
                   Detected Anomalies ({shown.length})
                 </h3>
-                <span className="text-xs font-mono text-[#64748b]">
+                <span className="text-xs font-mono text-[#6e6e75]">
                   Confidence Cutoff: {(minConf * 100).toFixed(0)}%
                 </span>
               </div>
@@ -279,10 +278,10 @@ export default function Detect() {
           {/* Right Sidebar: Controls & Metrics */}
           <aside className="space-y-6">
             {/* Quick Metrics Panel */}
-            <div className="rounded-2xl border border-[#141f36] bg-[#070d1a] p-5 text-xs shadow-2xl">
-              <div className="font-mono font-bold uppercase text-[#00f2ff] mb-3 pb-2 border-b border-[#141f36] flex items-center justify-between">
+            <div className="rounded-md border border-[#26262a] bg-[#111112] p-5 text-xs shadow-none">
+              <div className="font-mono font-bold uppercase text-[#6d8bab] mb-3 pb-2 border-b border-[#26262a] flex items-center justify-between">
                 <span>Scan Telemetry</span>
-                <CheckCircle2 className="h-3.5 w-3.5 text-[#10b981]" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#6f9270]" />
               </div>
               <div className="space-y-2.5">
                 <Row label="Objects Shown" value={String(shown.length)} />
@@ -298,13 +297,13 @@ export default function Detect() {
             </div>
 
             {/* Confidence Slider Control */}
-            <div className="rounded-2xl border border-[#141f36] bg-[#070d1a] p-5 shadow-2xl">
+            <div className="rounded-md border border-[#26262a] bg-[#111112] p-5 shadow-none">
               <div className="flex items-center justify-between mb-2">
                 <label htmlFor="conf" className="text-xs font-bold text-white flex items-center gap-1.5 font-mono">
-                  <Sliders className="h-3.5 w-3.5 text-[#00f2ff]" />
+                  <Sliders className="h-3.5 w-3.5 text-[#6d8bab]" />
                   Confidence Threshold
                 </label>
-                <span className="font-mono text-xs font-bold text-[#00f2ff]">
+                <span className="font-mono text-xs font-bold text-[#6d8bab]">
                   {(minConf * 100).toFixed(0)}%
                 </span>
               </div>
@@ -316,35 +315,35 @@ export default function Detect() {
                 step={0.01}
                 value={minConf}
                 onChange={(e) => setMinConf(Number(e.target.value))}
-                className="mt-3 w-full accent-[#00f2ff] cursor-pointer"
+                className="mt-3 w-full accent-[#6d8bab] cursor-pointer"
               />
             </div>
 
             {/* Export Reports */}
-            <div className="rounded-2xl border border-[#141f36] bg-[#070d1a] p-5 shadow-2xl">
+            <div className="rounded-md border border-[#26262a] bg-[#111112] p-5 shadow-none">
               <div className="text-xs font-bold text-white flex items-center gap-1.5 mb-3 font-mono">
-                <Download className="h-3.5 w-3.5 text-[#00f2ff]" />
+                <Download className="h-3.5 w-3.5 text-[#6d8bab]" />
                 Export Intelligence Report
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <a
-                  className="flex items-center justify-center gap-1.5 rounded-xl border border-[#141f36] bg-[#0a1122] px-3 py-2 text-center text-xs font-mono text-slate-200 hover:border-[#00f2ff]/50 hover:text-[#00f2ff] transition-colors"
-                  href={survey ? api.reportUrl(survey.id, 'json') : '#'}
+                  className="flex items-center justify-center gap-1.5 rounded-md border border-[#26262a] bg-[#161617] px-3 py-2 text-center text-xs font-mono text-slate-200 hover:border-[#6d8bab]/50 hover:text-[#6d8bab] transition-colors"
+                  onClick={() => survey && void api.downloadReport(survey.id, 'json')}
                   download="sonar_report.json"
                 >
-                  <FileCode className="h-3.5 w-3.5 text-[#00f2ff]" /> JSON
+                  <FileCode className="h-3.5 w-3.5 text-[#6d8bab]" /> JSON
                 </a>
                 <a
-                  className="flex items-center justify-center gap-1.5 rounded-xl border border-[#141f36] bg-[#0a1122] px-3 py-2 text-center text-xs font-mono text-slate-200 hover:border-[#00f2ff]/50 hover:text-[#00f2ff] transition-colors"
-                  href={survey ? api.reportUrl(survey.id, 'csv') : '#'}
+                  className="flex items-center justify-center gap-1.5 rounded-md border border-[#26262a] bg-[#161617] px-3 py-2 text-center text-xs font-mono text-slate-200 hover:border-[#6d8bab]/50 hover:text-[#6d8bab] transition-colors"
+                  onClick={() => survey && void api.downloadReport(survey.id, 'csv')}
                   download="sonar_report.csv"
                 >
-                  <FileSpreadsheet className="h-3.5 w-3.5 text-[#00f2ff]" /> CSV
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-[#6d8bab]" /> CSV
                 </a>
               </div>
               <button
                 onClick={() => setPhase('idle')}
-                className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl border border-[#141f36] bg-[#0a1122] py-2 text-xs font-mono text-slate-200 hover:border-[#00f2ff]/40 hover:text-[#00f2ff] transition-colors"
+                className="mt-4 w-full flex items-center justify-center gap-2 rounded-md border border-[#26262a] bg-[#161617] py-2 text-xs font-mono text-slate-200 hover:border-[#6d8bab]/40 hover:text-[#6d8bab] transition-colors"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> Analyze Another Frame
               </button>
@@ -353,15 +352,15 @@ export default function Detect() {
         </div>
       )}
 
-      {/* RECENT SURVEY SWATHS (Live Data from API) */}
-      <div className="mt-8 rounded-2xl border border-[#141f36] bg-[#070d1a] p-6 shadow-2xl space-y-4">
+      {/* Recent surveys (Live Data from API) */}
+      <div className="mt-8 rounded-md border border-[#26262a] bg-[#111112] p-6 shadow-none space-y-4">
         {/* Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#141f36] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-[#26262a] pb-4">
           <div>
-            <h2 className="text-sm font-bold uppercase font-mono tracking-wider text-slate-100">
-              RECENT SURVEY SWATHS
+            <h2 className="text-sm font-semibold text-slate-100">
+              Recent surveys
             </h2>
-            <p className="text-xs text-[#64748b] mt-0.5">
+            <p className="text-xs text-[#6e6e75] mt-0.5">
               Surveys recorded by this system, newest last
             </p>
           </div>
@@ -369,11 +368,11 @@ export default function Detect() {
 
         {/* Table */}
         {!surveysList.length ? (
-          <Empty>No survey swaths recorded yet. Upload a sonar image to run inference.</Empty>
+          <Empty>No surveys yet. Upload a frame or an XTF to start one.</Empty>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
-              <thead className="bg-[#050914] font-mono text-[#64748b] uppercase tracking-wider text-[11px] border-b border-[#141f36]">
+              <thead className="bg-[#0c0c0d] font-mono text-[#6e6e75] uppercase tracking-wider text-[11px] border-b border-[#26262a]">
                 <tr>
                   <th className="px-4 py-3">SURVEY ID</th>
                   <th className="px-4 py-3">NAME / FILE</th>
@@ -382,17 +381,17 @@ export default function Detect() {
                   <th className="px-4 py-3 text-right">ACTION</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#141f36]">
+              <tbody className="divide-y divide-[#26262a]">
                 {surveysList.map((s) => (
-                  <tr key={s.id} className="hover:bg-[#0a1122]/60 transition-colors font-mono">
-                    <td className="px-4 py-4 font-bold text-[#00f2ff]">#{s.id}</td>
+                  <tr key={s.id} className="hover:bg-[#161617]/60 transition-colors font-mono">
+                    <td className="px-4 py-4 font-bold text-[#6d8bab]">#{s.id}</td>
                     <td className="px-4 py-4 text-slate-200">{s.name}</td>
                     <td className="px-4 py-4 text-slate-300">{s.uploaded_by || '—'}</td>
-                    <td className="px-4 py-4 text-[#8094b8]">{s.created_at}</td>
+                    <td className="px-4 py-4 text-[#8a8a91]">{s.created_at}</td>
                     <td className="px-4 py-4 text-right">
                       <a
-                        href={api.reportUrl(s.id, 'json')}
-                        className="rounded-lg border border-[#00f2ff]/60 text-[#00f2ff] hover:bg-[#00f2ff]/10 px-3 py-1.5 text-xs font-mono font-semibold transition-all inline-block"
+                        onClick={() => void api.downloadReport(s.id, 'json')}
+                        className="rounded-lg border border-[#6d8bab]/60 text-[#6d8bab] hover:bg-[#6d8bab]/10 px-3 py-1.5 text-xs font-mono font-semibold transition-all inline-block"
                       >
                         Download Report
                       </a>
@@ -410,8 +409,8 @@ export default function Detect() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between border-b border-[#141f36] py-1.5 last:border-0 font-mono">
-      <span className="text-[#64748b]">{label}</span>
+    <div className="flex justify-between border-b border-[#26262a] py-1.5 last:border-0 font-mono">
+      <span className="text-[#6e6e75]">{label}</span>
       <span className="text-slate-200 font-semibold">{value}</span>
     </div>
   )
@@ -458,7 +457,7 @@ function BoxOverlay({
     : null
 
   return (
-    <div className="relative inline-block w-full overflow-hidden rounded-xl border border-[#141f36] bg-black">
+    <div className="relative inline-block w-full overflow-hidden rounded-md border border-[#26262a] bg-black">
       <img
         ref={imgRef}
         src={src}
@@ -505,7 +504,7 @@ function BoxOverlay({
                   y={Math.max(0, ry - 22)}
                   width={Math.max(130, d.class.length * 8 + 45)}
                   height={22}
-                  fill="#050914"
+                  fill="#0c0c0d"
                   fillOpacity={0.95}
                   stroke={colour}
                   strokeWidth={1}
@@ -540,9 +539,9 @@ function DetectionTable({
   onSelect: (i: number | null) => void
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#141f36]">
+    <div className="overflow-x-auto rounded-md border border-[#26262a]">
       <table className="w-full text-xs text-left font-mono">
-        <thead className="bg-[#050914] text-[#64748b] uppercase tracking-wider text-[11px] border-b border-[#141f36]">
+        <thead className="bg-[#0c0c0d] text-[#6e6e75] uppercase tracking-wider text-[11px] border-b border-[#26262a]">
           <tr>
             <th className="px-4 py-3">Class / Target</th>
             <th className="px-4 py-3">Confidence</th>
@@ -550,7 +549,7 @@ function DetectionTable({
             <th className="px-4 py-3">Est. Size</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#141f36]">
+        <tbody className="divide-y divide-[#26262a]">
           {[...detections]
             .sort((a, b) => b.confidence - a.confidence)
             .map((d) => {
@@ -561,7 +560,7 @@ function DetectionTable({
                   key={d.id}
                   onClick={() => onSelect(isSelected ? null : d.id)}
                   className={`cursor-pointer transition-colors ${
-                    isSelected ? 'bg-[#00f2ff]/15 font-medium' : 'hover:bg-[#0a1122]/60'
+                    isSelected ? 'bg-[#6d8bab]/15 font-medium' : 'hover:bg-[#161617]/60'
                   }`}
                 >
                   <td className="px-4 py-3">
@@ -579,18 +578,18 @@ function DetectionTable({
                       {(d.confidence * 100).toFixed(1)}%
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-[#8094b8]">
+                  <td className="px-4 py-3 text-[#8a8a91]">
                     {d.lat != null && d.lon != null ? (
                       `${d.lat.toFixed(4)}°N, ${d.lon.toFixed(4)}°E`
                     ) : (
-                      <span className="text-[#64748b] italic">Telemetry track</span>
+                      <span className="text-[#6e6e75] italic">Telemetry track</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-slate-300">
                     {d.size_m != null ? `${d.size_m.toFixed(2)} m` : (
                       <span
-                        className="text-[#64748b] italic cursor-help"
-                        title="Size estimation requires an XTF survey file with navigation headers. JPEG/PNG uploads have no spatial calibration."
+                        className="text-[#6e6e75] italic cursor-help"
+                        title="Sizes in metres need an XTF - the geometry is in its ping headers. An image has none, so there is nothing to scale from."
                       >
                         No nav data
                       </span>

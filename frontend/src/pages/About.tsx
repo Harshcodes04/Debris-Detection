@@ -33,14 +33,14 @@ export default function About() {
       <Wrap wide>
         <section className="py-6">
           <div className="flex items-center gap-2 font-bold text-lg text-white mb-4">
-            <ShieldAlert className="h-5 w-5 text-amber-400" />
+            <ShieldAlert className="h-5 w-5 text-hazard" />
             Documented Technical Limitations
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {LIMITS.map((l, idx) => (
               <div
                 key={idx}
-                className="rounded-2xl border border-line bg-panel/40 p-4 text-xs text-muted leading-relaxed backdrop-blur-sm"
+                className="rounded-md border border-line bg-panel/40 p-4 text-xs text-muted leading-relaxed bg-clip-padding"
               >
                 <div className="font-mono text-wreck font-bold mb-1 text-[11px]">
                   LIMITATION #{idx + 1}
@@ -50,7 +50,7 @@ export default function About() {
             ))}
           </div>
 
-          <div className="mt-10 rounded-2xl border border-line bg-panel/60 p-6 backdrop-blur-sm">
+          <div className="mt-10 rounded-md border border-line bg-panel/60 p-6 bg-clip-padding">
             <div className="flex items-center gap-2 font-bold text-base text-white mb-2">
               <BookOpen className="h-5 w-5 text-wreck" />
               Prior Work & Academic Comparison

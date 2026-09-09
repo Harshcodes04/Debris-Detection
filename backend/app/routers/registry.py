@@ -3,11 +3,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..deps import require_viewer
 from ..models import RegistryEntry
 from ml.registry import Entry as MLEntry
 from ml.heatmap import build as build_heatmap, to_geojson as heatmap_to_geojson
 
-router = APIRouter(prefix="/api/registry", tags=["registry"])
+router = APIRouter(prefix="/api/registry", tags=["registry"],
+                   dependencies=[Depends(require_viewer)])
 
 def _to_ml_entry(e: RegistryEntry) -> MLEntry:
     return MLEntry(

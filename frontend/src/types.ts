@@ -173,18 +173,18 @@ export interface ModelStatusInfo {
 }
 
 export const STATUS_COLOUR: Record<HazardStatus, string> = {
-  present: '#00f2ff',
-  unconfirmed: '#f59e0b',
-  gone: '#64748b',
-  recovered: '#34d399',
+  present: '#6d8bab',      // the accent - confirmed, still there
+  unconfirmed: '#9a9aa2',  // seen once; grey until a second survey agrees
+  gone: '#4a4a50',         // missed repeatedly, presumed removed
+  recovered: '#6f9270',    // lifted
 }
 
 /** Colour a detection by class family */
 export function classColour(cls: string): string {
   const c = cls.toLowerCase()
   if (c.includes('pot') || c.includes('net') || c.includes('gear') || c.includes('ghost')) return '#fb7185'
-  if (c.includes('ship') || c.includes('wreck') || c.includes('aircraft') || c.includes('metal')) return '#00f2ff'
-  if (c.includes('pipe') || c.includes('container') || c.includes('debris')) return '#f59e0b'
+  if (c.includes('ship') || c.includes('wreck') || c.includes('aircraft') || c.includes('metal')) return '#6d8bab'
+  if (c.includes('pipe') || c.includes('container') || c.includes('debris')) return '#b8904a'
   return '#34d399'
 }
 

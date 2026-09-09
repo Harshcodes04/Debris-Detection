@@ -3,9 +3,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..deps import require_analyst
 from ..models import SurveyFile
 
-router = APIRouter(prefix="/api/active-learning", tags=["active_learning"])
+router = APIRouter(prefix="/api/active-learning", tags=["active_learning"],
+                   dependencies=[Depends(require_analyst)])
 
 class RankRequest(BaseModel):
     images: list[str] | None = None

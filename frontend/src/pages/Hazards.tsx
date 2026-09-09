@@ -40,17 +40,17 @@ export default function Hazards() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-wreck/30 bg-wreck/10 px-3 py-0.5 text-xs font-mono text-wreck mb-1">
             <Database className="h-3.5 w-3.5 text-wreck" />
-            CROSS-SURVEY REGISTRY
+            Registry
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">
-            Seabed Debris Hazard Registry
+            Hazard registry
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Aggregated target registry matched across multiple side-scan sonar passes using geospatial tolerance algorithms.
+            Hazards matched across surveys by position, within 25 m.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 rounded-xl border border-line bg-panel/70 p-1">
+        <div className="flex items-center gap-2 rounded-md border border-line bg-panel/70 p-1">
           {(['all', 'present', 'unconfirmed', 'recovered'] as const).map((tab) => (
             <button
               key={tab}
@@ -69,15 +69,15 @@ export default function Hazards() {
 
       {/* Confirmed Alert Banner */}
       {confirmedCount > 0 && (
-        <div className="mt-6 flex items-center justify-between rounded-xl border border-wreck/40 bg-wreck/10 p-4 text-xs backdrop-blur-sm shadow-glow-cyan">
+        <div className="mt-6 flex items-center justify-between rounded-md border border-wreck/40 bg-wreck/10 p-4 text-xs bg-clip-padding shadow-none">
           <div className="flex items-center gap-3">
             <ShieldAlert className="h-5 w-5 text-wreck shrink-0" />
             <div>
               <strong className="font-bold text-white text-sm">
-                {confirmedCount} Confirmed & Uncollected Targets
+                {confirmedCount} confirmed and still there
               </strong>
               <div className="text-muted mt-0.5">
-                Sighted across multiple independent sonar transects with high spatial correlation.
+                Seen on more than one survey and not yet recovered.
               </div>
             </div>
           </div>
@@ -96,7 +96,7 @@ export default function Hazards() {
             placeholder="Filter by Hazard ID, Class, or Note..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-line bg-panel/70 pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-muted/60 focus:border-wreck/50 focus:outline-none"
+            className="w-full rounded-md border border-line bg-panel/70 pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-muted/60 focus:border-wreck/50 focus:outline-none"
           />
         </div>
         <div className="text-xs font-mono text-muted">
@@ -107,10 +107,10 @@ export default function Hazards() {
       {/* Registry Table */}
       {!filtered.length ? (
         <div className="mt-6">
-          <Empty>No hazards found matching current filters.</Empty>
+          <Empty>No hazards match those filters.</Empty>
         </div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-line bg-panel/60 backdrop-blur-sm">
+        <div className="mt-6 overflow-x-auto rounded-md border border-line bg-panel/60 bg-clip-padding">
           <table className="w-full text-xs text-left">
             <thead className="bg-marine-950 font-mono text-muted uppercase tracking-wider border-b border-line">
               <tr>

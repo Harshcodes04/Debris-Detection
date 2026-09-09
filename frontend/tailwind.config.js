@@ -4,47 +4,37 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Neutral matte black. No blue cast, no gloss - the greys step evenly
+        // so panels read as depth rather than as colour.
         marine: {
-          950: '#040711',
-          900: '#070d1a',
-          850: '#0b1326',
-          800: '#0f1934',
-          750: '#152243',
-          700: '#1b2c56',
+          950: '#0c0c0d',
+          900: '#111112',
+          850: '#161617',
+          800: '#1c1c1e',
+          750: '#232326',
+          700: '#2b2b2f',
         },
-        ink: '#060a12',
-        panel: '#0d1527',
-        'panel-light': '#121d36',
-        line: '#1e2d4a',
-        'line-bright': '#2a3f66',
-        muted: '#8094b8',
-        wreck: '#00f2ff',
-        'wreck-dim': '#0284c7',
-        ghost: '#fb7185',
-        hazard: '#f59e0b',
-        safe: '#34d399',
-        intel: '#818cf8',
-      },
-      animation: {
-        'radar-sweep': 'radarSweep 4s linear infinite',
-        'sonar-ping': 'sonarPing 2s cubic-bezier(0, 0, 0.2, 1) infinite',
-      },
-      keyframes: {
-        radarSweep: {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(360deg)' },
-        },
-        sonarPing: {
-          '75%, 100%': { transform: 'scale(2)', opacity: '0' },
-        },
-      },
-      boxShadow: {
-        'glow-cyan': '0 0 20px -3px rgba(0, 242, 255, 0.25)',
-        'glow-rose': '0 0 20px -3px rgba(251, 113, 133, 0.25)',
-        'glow-emerald': '0 0 20px -3px rgba(52, 211, 153, 0.25)',
+        ink: '#0a0a0b',
+        panel: '#141416',
+        'panel-light': '#1b1b1d',
+        line: '#26262a',
+        'line-bright': '#343439',
+        muted: '#8a8a91',
+
+        // One accent, cool and low-saturation - the colour of an instrument
+        // face, not a highlighter. It marks what is interactive or current;
+        // everything else stays grey, which is what stops a dark UI turning
+        // into a light show.
+        wreck: '#6d8bab',
+        'wreck-dim': '#48607a',
+
+        // Status colours, desaturated to sit on black without glowing.
+        ghost: '#b5645f',
+        hazard: '#b8904a',
+        safe: '#6f9270',
+        intel: '#7b7f96',
       },
     },
   },
   plugins: [],
 }
-

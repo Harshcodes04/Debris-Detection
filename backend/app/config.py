@@ -27,10 +27,40 @@ class Settings:
             ).split(",")
             if extension.strip()
         }
+        # Signing key for access tokens. There is no safe default: a fixed
+        # fallback would mean every deployment signs with the same key and any
+        # of them could mint a token for another. Refused rather than guessed
+        # outside development.
+        self.secret_key = os.getenv("SIH_SECRET_KEY", "")
+        self.environment = os.getenv("ENVIRONMENT", "development").lower()
+        if not self.secret_key:
+            if self.environment == "production":
+                raise RuntimeError(
+                    "SIH_SECRET_KEY must be set when ENVIRONMENT=production. "
+                    "Generate one with: python -c \"import secrets; "
+                    "print(secrets.token_urlsafe(48))\""
+                )
+            self.secret_key = "dev-only-insecure-key-not-for-deployment-0123456789"
+        # HS256 keys shorter than the 256-bit digest weaken the signature;
+        # RFC 7518 3.2 requires at least that, and PyJWT warns below it.
+        if len(self.secret_key.encode()) < 32:
+            raise RuntimeError(
+                "SIH_SECRET_KEY must be at least 32 bytes. Generate one with: "
+                "python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            )
+        self.access_token_minutes = int(os.getenv("ACCESS_TOKEN_MINUTES", "720"))
+        # Only honour X-Forwarded-For when something in front actually sets it.
+        # Trusting it by default lets a caller forge their own rate-limit key.
+        self.trust_proxy_headers = os.getenv("TRUST_PROXY_HEADERS", "false").lower() in {"1", "true", "yes"}
+
+        # Seed account, created once on first startup if no users exist.
+        self.bootstrap_admin_email = os.getenv("BOOTSTRAP_ADMIN_EMAIL", "")
+        self.bootstrap_admin_password = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "")
+
         self.cors_origins = [
             origin.strip()
             for origin in os.getenv(
-                "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+                "CORS_ORIGINS", "http://localhost:5200,http://127.0.0.1:5200"
             ).split(",")
             if origin.strip()
         ]

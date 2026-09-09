@@ -32,12 +32,12 @@ export default function Dashboard() {
   return (
     <Wrap wide>
       {/* Top Banner / Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-line bg-gradient-to-r from-marine-900 via-panel to-marine-850 p-6 sm:p-8 shadow-2xl">
+      <div className="relative overflow-hidden rounded-md border border-line bg-gradient-to-r from-marine-900 via-panel to-marine-850 p-6 sm:p-8 shadow-none">
         <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-wreck/5 blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-wreck/30 bg-wreck/10 px-3 py-1 text-xs font-mono text-wreck mb-3">
-              <Radio className="h-3.5 w-3.5 animate-pulse text-wreck" />
+              <Radio className="h-3.5 w-3.5 opacity-90 text-wreck" />
               SIH PS57 · SEABED SONAR PLATFORM
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
@@ -52,14 +52,14 @@ export default function Dashboard() {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               to="/detect"
-              className="inline-flex items-center gap-2 rounded-xl border border-wreck/50 bg-wreck px-4 py-2.5 text-sm font-semibold text-marine-950 hover:bg-wreck/90 transition-all shadow-glow-cyan"
+              className="inline-flex items-center gap-2 rounded-md border border-wreck/50 bg-wreck px-4 py-2.5 text-sm font-semibold text-marine-950 hover:bg-wreck/90 transition-all shadow-none"
             >
               <Upload className="h-4 w-4" />
               Upload Sonar Frame
             </Link>
             <Link
               to="/map"
-              className="inline-flex items-center gap-2 rounded-xl border border-line bg-panel/80 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:border-wreck/40 hover:text-wreck transition-all"
+              className="inline-flex items-center gap-2 rounded-md border border-line bg-panel/80 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:border-wreck/40 hover:text-wreck transition-all"
             >
               <Radar className="h-4 w-4" />
               View Spatial Risk Map
@@ -113,7 +113,7 @@ export default function Dashboard() {
         {/* Left Column: Quick Upload Zone & Recent Scans */}
         <div className="lg:col-span-2 space-y-6">
           {/* Quick Sonar Upload Zone Card */}
-          <div className="rounded-2xl border border-line bg-panel/60 p-6 backdrop-blur-sm relative overflow-hidden">
+          <div className="rounded-md border border-line bg-panel/60 p-6 bg-clip-padding relative overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -134,10 +134,10 @@ export default function Dashboard() {
 
             <Link
               to="/detect"
-              className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line-bright bg-marine-950/50 px-6 py-8 text-center transition-all hover:border-wreck/60 hover:bg-marine-900/60 group"
+              className="flex flex-col items-center justify-center rounded-md border border-dashed border-line-bright bg-marine-950/50 px-6 py-8 text-center transition-all hover:border-wreck/60 hover:bg-marine-900/60 group"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-wreck/30 bg-wreck/10 text-wreck group-hover:scale-110 transition-transform shadow-glow-cyan">
-                <Radar className="h-6 w-6 animate-pulse" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-wreck/30 bg-wreck/10 text-wreck group-hover:scale-110 transition-transform shadow-none">
+                <Radar className="h-6 w-6 opacity-90" />
               </div>
               <span className="mt-3 text-sm font-semibold text-slate-200">
                 Click or drag & drop sonar frame here
@@ -149,11 +149,11 @@ export default function Dashboard() {
           </div>
 
           {/* Recent Scans Table */}
-          <div className="rounded-2xl border border-line bg-panel/60 p-6 backdrop-blur-sm">
+          <div className="rounded-md border border-line bg-panel/60 p-6 bg-clip-padding">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-white">Recent Survey Scans</h2>
-                <p className="text-xs text-muted">Telemetry history from active marine transects</p>
+                <p className="text-xs text-muted">Recent surveys and what came out of them</p>
               </div>
               <Link
                 to="/hazards"
@@ -200,14 +200,14 @@ export default function Dashboard() {
         {/* Right Column: Model Status & AI Intelligence Highlights */}
         <div className="space-y-6">
           {/* Model Status Card */}
-          <div className="rounded-2xl border border-line bg-panel/60 p-6 backdrop-blur-sm">
+          <div className="rounded-md border border-line bg-panel/60 p-6 bg-clip-padding">
             <h2 className="text-base font-bold text-white flex items-center gap-2 mb-4">
               <Cpu className="h-4 w-4 text-wreck" />
               YOLO ML Inference Status
             </h2>
 
             <div className="space-y-3">
-              <div className="rounded-xl border border-line bg-marine-950/60 p-3.5 text-xs">
+              <div className="rounded-md border border-line bg-marine-950/60 p-3.5 text-xs">
                 <div className="flex items-center justify-between font-semibold text-slate-200">
                   <span>Wreck Detection Head</span>
                   <StatusBadge status="online" label="0.625 mAP" pulse />
@@ -217,7 +217,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-line bg-marine-950/60 p-3.5 text-xs">
+              <div className="rounded-md border border-line bg-marine-950/60 p-3.5 text-xs">
                 <div className="flex items-center justify-between font-semibold text-slate-200">
                   <span>Ghost Gear Head</span>
                   <StatusBadge status="online" label="0.310 mAP" pulse />
@@ -230,10 +230,10 @@ export default function Dashboard() {
           </div>
 
           {/* Active Hazards Summary */}
-          <div className="rounded-2xl border border-line bg-panel/60 p-6 backdrop-blur-sm">
+          <div className="rounded-md border border-line bg-panel/60 p-6 bg-clip-padding">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-400" />
+                <AlertTriangle className="h-4 w-4 text-hazard" />
                 Active Marine Hazards
               </h2>
               <span className="font-mono text-xs text-wreck font-bold">
@@ -245,7 +245,7 @@ export default function Dashboard() {
               {hazards.slice(0, 4).map((h: Hazard) => (
                 <div
                   key={h.hazard_id}
-                  className="rounded-xl border border-line bg-marine-950/50 p-3 text-xs flex items-center justify-between"
+                  className="rounded-md border border-line bg-marine-950/50 p-3 text-xs flex items-center justify-between"
                 >
                   <div>
                     <div className="font-semibold text-slate-200 flex items-center gap-2">
@@ -263,7 +263,7 @@ export default function Dashboard() {
 
             <Link
               to="/hazards"
-              className="mt-4 block w-full rounded-xl border border-line bg-marine-900/60 py-2 text-center font-mono text-xs text-slate-300 hover:border-wreck/40 hover:text-wreck transition-colors"
+              className="mt-4 block w-full rounded-md border border-line bg-marine-900/60 py-2 text-center font-mono text-xs text-slate-300 hover:border-wreck/40 hover:text-wreck transition-colors"
             >
               Explore Registry & Recovery Plans →
             </Link>

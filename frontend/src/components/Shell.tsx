@@ -10,7 +10,7 @@ export function Wrap({ children, wide }: { children: React.ReactNode; wide?: boo
 
 export function Loading({ what }: { what: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-wreck/30 bg-panel/70 px-5 py-4 text-sm shadow-glow-cyan">
+    <div className="flex items-center gap-3 rounded-md border border-wreck/30 bg-panel/70 px-5 py-4 text-sm shadow-none">
       <div className="relative flex h-5 w-5 items-center justify-center">
         <Radar className="h-5 w-5 animate-spin text-wreck" />
       </div>
@@ -22,12 +22,12 @@ export function Loading({ what }: { what: string }) {
 export function Failed({ error }: { error: unknown }) {
   const msg = error instanceof Error ? error.message : String(error)
   return (
-    <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-5 text-sm text-rose-300 backdrop-blur-sm">
+    <div className="rounded-md border border-ghost/40 bg-ghost/10 p-5 text-sm text-rose-300 bg-clip-padding">
       <div className="flex items-center gap-2 font-semibold text-rose-200">
-        <AlertTriangle className="h-5 w-5 text-rose-400" />
+        <AlertTriangle className="h-5 w-5 text-ghost" />
         Backend Connection Notice
       </div>
-      <div className="mt-2 font-mono text-xs text-rose-300/90 bg-rose-950/40 p-2.5 rounded border border-rose-500/20">
+      <div className="mt-2 font-mono text-xs text-rose-300/90 bg-rose-950/40 p-2.5 rounded border border-ghost/20">
         {msg}
       </div>
       <div className="mt-3 text-xs text-rose-300/70">
@@ -39,7 +39,7 @@ export function Failed({ error }: { error: unknown }) {
 
 export function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-line bg-panel/40 p-8 text-center text-muted">
+    <div className="flex flex-col items-center justify-center rounded-md border border-line bg-panel/40 p-8 text-center text-muted">
       <Inbox className="h-10 w-10 text-muted/40 mb-2" />
       <div className="text-sm font-medium text-slate-300">{children}</div>
     </div>

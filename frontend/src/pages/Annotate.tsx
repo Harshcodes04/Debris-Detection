@@ -4,10 +4,6 @@ import { Layers, Play, HelpCircle } from 'lucide-react'
 import { rankForAnnotation } from '../api'
 import { Empty, Failed, Loading, Wrap } from '../components/Shell'
 
-const PLACEHOLDER = `samples/sonar_sector_04.jpg
-samples/sonar_sector_12.jpg
-samples/sonar_sector_19.jpg`
-
 export default function Annotate() {
   const [topK, setTopK] = useState(12)
 
@@ -36,7 +32,7 @@ export default function Annotate() {
       </div>
 
       {/* Input Card */}
-      <div className="mt-6 rounded-2xl border border-line bg-panel/60 p-5 backdrop-blur-sm shadow-xl">
+      <div className="mt-6 rounded-md border border-line bg-panel/60 p-5 bg-clip-padding shadow-none">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <label htmlFor="topk" className="text-xs font-mono text-muted">Show Top</label>
@@ -53,7 +49,7 @@ export default function Annotate() {
           <button
             onClick={() => rank.mutate()}
             disabled={rank.isPending}
-            className="inline-flex items-center gap-2 rounded-xl border border-wreck/40 bg-wreck px-4 py-2 text-xs font-bold text-marine-950 hover:bg-wreck/90 transition-all disabled:opacity-40 shadow-glow-cyan"
+            className="inline-flex items-center gap-2 rounded-md border border-wreck/40 bg-wreck px-4 py-2 text-xs font-bold text-marine-950 hover:bg-wreck/90 transition-all disabled:opacity-40 shadow-none"
           >
             <Play className="h-3.5 w-3.5 fill-current" />
             {rank.isPending ? 'Scoring Imagery...' : 'Rank Uncertainty'}
@@ -66,20 +62,20 @@ export default function Annotate() {
 
       {rank.data && (
         <>
-          <p className="mt-6 text-xs font-mono text-wreck bg-wreck/10 p-3 rounded-xl border border-wreck/30">
+          <p className="mt-6 text-xs font-mono text-wreck bg-wreck/10 p-3 rounded-md border border-wreck/30">
             {rank.data.note}
           </p>
 
           {!candidates.length ? (
-            <div className="mt-4"><Empty>Nothing scored — check paths resolve on server.</Empty></div>
+            <div className="mt-4"><Empty>Nothing scored. Check the paths exist on the machine running the backend.</Empty></div>
           ) : (
             <>
-              <h2 className="mt-6 text-xs font-mono font-bold uppercase tracking-wider text-wreck flex items-center gap-2">
+              <h2 className="mt-6 text-sm font-semibold text-slate-200 flex items-center gap-2">
                 <HelpCircle className="h-4 w-4" /> High Priority — Label These First
               </h2>
               <ol className="mt-3 space-y-3">
                 {candidates.slice(0, topK).map((c, i) => (
-                  <li key={c.path} className="rounded-2xl border border-line bg-panel/40 p-4 text-xs">
+                  <li key={c.path} className="rounded-md border border-line bg-panel/40 p-4 text-xs">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <span className="font-mono text-xs font-bold text-wreck">

@@ -38,6 +38,11 @@ ON_SITE_HOURS = {
 
 NOT_RECOVERABLE = {"ship", "wreck", "aircraft"}
 
+# An object nobody has identified is not a recovery job yet. It could be a rock,
+# and on this coast it could be ordnance. Send someone to look at it before
+# anyone plans to lift it.
+INSPECT_FIRST = {"unidentified"}
+
 SETUP_HOURS = 0.75      # positioning and getting into the water, any site
 
 
@@ -89,6 +94,17 @@ def plan_recovery(hazard_id: str, cls: str, *, depth_m: float | None = None,
                   age_days: int | None = None) -> Plan:
     """Estimate the time to recover one hazard."""
     notes: list[str] = []
+
+    if cls in INSPECT_FIRST:
+        method, _, depth_notes = _method_and_penalty(depth_m)
+        return Plan(hazard_id=hazard_id, cls=cls, recoverable=False,
+                    method=f"identify before recovery - inspect by {method}",
+                    transit_hours=transit_hours, setup_hours=SETUP_HOURS,
+                    on_site_hours=0.5, total_hours=None,
+                    notes=depth_notes + [
+                        "class is unidentified: inspect and classify before a "
+                        "recovery crew is tasked. An unknown object on this "
+                        "coast may be ordnance."])
 
     if cls in NOT_RECOVERABLE:
         return Plan(hazard_id=hazard_id, cls=cls, recoverable=False,

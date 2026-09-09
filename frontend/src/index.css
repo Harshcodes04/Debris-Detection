@@ -6,85 +6,86 @@
   color-scheme: dark;
 }
 
+/* Flat black. There were two radial glows sitting behind the whole page, which
+   is what made every panel look lit from underneath. */
 body {
   margin: 0;
-  background-color: #040711;
-  color: #e2e8f0;
+  background-color: #0a0a0b;
+  color: #e8e8ea;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(0, 242, 255, 0.05) 0%, transparent 60%),
-    radial-gradient(circle at 90% 80%, rgba(99, 102, 241, 0.03) 0%, transparent 50%);
-  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom sonar grid pattern background */
 .sonar-grid-bg {
   background-size: 32px 32px;
-  background-image: 
-    linear-gradient(to right, rgba(30, 45, 74, 0.25) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(30, 45, 74, 0.25) 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #070d1a;
+  background: #111112;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e2d4a;
-  border-radius: 3px;
+  background: #2b2b2f;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a3f66;
+  background: #3a3a40;
 }
 
-/* Leaflet dark styling overrides */
+/* Leaflet, matched to the panels around it */
 .leaflet-container {
-  background: #070d1a !important;
+  background: #111112 !important;
   font-family: inherit;
 }
 
 .leaflet-popup-content-wrapper {
-  background: #0d1527 !important;
-  color: #e2e8f0 !important;
-  border: 1px solid #1e2d4a !important;
-  border-radius: 8px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  background: #141416 !important;
+  color: #e8e8ea !important;
+  border: 1px solid #26262a !important;
+  border-radius: 4px !important;
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.8) !important;
 }
 
 .leaflet-popup-tip {
-  background: #0d1527 !important;
-  border: 1px solid #1e2d4a !important;
+  background: #141416 !important;
+  border: 1px solid #26262a !important;
 }
 
 .leaflet-control-zoom a {
-  background-color: #0d1527 !important;
-  color: #00f2ff !important;
-  border-color: #1e2d4a !important;
+  background-color: #141416 !important;
+  color: #c9c9cd !important;
+  border-color: #26262a !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #1b1b1d !important;
+  color: #6d8bab !important;
 }
 
 .leaflet-control-attribution {
-  background-color: rgba(7, 13, 26, 0.8) !important;
-  color: #64748b !important;
+  background-color: rgba(10, 10, 11, 0.85) !important;
+  color: #6e6e75 !important;
 }
 
 .leaflet-control-attribution a {
-  color: #38bdf8 !important;
+  color: #8a8a91 !important;
 }
 
-/* Monospace font utility */
 .font-mono {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
 
-/* Dark mode Leaflet tile styling */
+/* Neutral greyscale tiles. The old filter hue-rotated the basemap blue, which
+   fought the imagery drawn over it. Low contrast as well as low brightness:
+   crushing it dark turned the sea black and made the map look half-loaded. */
 .dark-map-tiles .leaflet-tile {
-  filter: brightness(0.65) invert(1) contrast(2.5) hue-rotate(190deg) saturate(0.4);
+  filter: grayscale(1) brightness(0.55) contrast(0.72);
 }
-

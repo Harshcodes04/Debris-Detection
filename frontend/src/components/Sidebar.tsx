@@ -33,7 +33,7 @@ export function Sidebar() {
       {/* Mobile Toggle Button */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-line bg-panel text-wreck shadow-glow-cyan md:hidden"
+        className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-line bg-panel text-wreck shadow-none md:hidden"
         aria-label="Toggle Navigation"
       >
         {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -43,28 +43,28 @@ export function Sidebar() {
       {mobileOpen && (
         <div
           onClick={() => setMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-ink/80 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-ink/80 bg-clip-padding md:hidden"
         />
       )}
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed bottom-0 top-0 z-40 flex w-64 flex-col border-r border-line bg-marine-900/95 transition-transform duration-300 backdrop-blur-md md:static md:translate-x-0 ${
+        className={`fixed bottom-0 top-0 z-40 flex w-64 flex-col border-r border-line bg-marine-900/95 transition-transform duration-300 bg-clip-padding md:static md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo Brand Header */}
         <div className="flex items-center gap-3 border-b border-line px-5 py-4">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-wreck/40 bg-wreck/10 text-wreck shadow-glow-cyan">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-md border border-wreck/40 bg-wreck/10 text-wreck shadow-none">
             <Radar className="h-5 w-5" />
             <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-wreck opacity-75" />
+              <span className="absolute inline-flex h-full w-full opacity-0 rounded-full bg-wreck opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-wreck" />
             </span>
           </div>
           <div>
             <div className="flex items-center gap-1.5 font-bold tracking-wider text-white text-base">
-              AQUASCAN <span className="text-wreck font-mono text-xs">AI</span>
+              Seabed Anomaly Detection
             </div>
             <div className="text-[11px] text-muted tracking-tight">
               Seabed Sonar Intelligence
@@ -87,7 +87,7 @@ export function Sidebar() {
                 className={({ isActive }) =>
                   `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
                     isActive
-                      ? 'border border-wreck/30 bg-wreck/10 text-wreck shadow-glow-cyan'
+                      ? 'border border-wreck/30 bg-wreck/10 text-wreck shadow-none'
                       : 'text-muted hover:border hover:border-line hover:bg-panel/60 hover:text-slate-100'
                   }`
                 }
@@ -101,20 +101,20 @@ export function Sidebar() {
 
         {/* Status System Card Footer */}
         <div className="border-t border-line p-4 bg-marine-950/60">
-          <div className="rounded-xl border border-line-bright bg-panel/80 p-3 text-xs">
+          <div className="rounded-md border border-line-bright bg-panel/80 p-3 text-xs">
             <div className="flex items-center justify-between font-medium text-slate-200">
               <span className="flex items-center gap-1.5">
                 <ShieldCheck className="h-3.5 w-3.5 text-safe" />
                 YOLO Dual Head
               </span>
               <span className="inline-flex items-center gap-1 text-[10px] font-mono text-safe">
-                <span className="h-1.5 w-1.5 rounded-full bg-safe animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-safe opacity-90" />
                 ONLINE
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between text-[11px] text-muted">
               <span className="flex items-center gap-1">
-                <Zap className="h-3 w-3 text-amber-400" /> Latency
+                <Zap className="h-3 w-3 text-hazard" /> Latency
               </span>
               <span className="font-mono text-slate-300">~18.4 ms</span>
             </div>

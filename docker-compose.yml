@@ -9,7 +9,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/sih_ps57
+      - DATABASE_URL=postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/sih_ps57
+      - SIH_SECRET_KEY=${SIH_SECRET_KEY:?set SIH_SECRET_KEY - python -c "import secrets; print(secrets.token_urlsafe(48))"}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-}
+      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - REDIS_URL=redis://redis:6379/0
       - QUEUE_MODE=celery
       - DATA_DIR=/app/data
@@ -26,7 +31,12 @@ services:
     container_name: sih-worker
     command: celery -A app.worker:celery_app worker --loglevel=info --pool=solo
     environment:
-      - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/sih_ps57
+      - DATABASE_URL=postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/sih_ps57
+      - SIH_SECRET_KEY=${SIH_SECRET_KEY:?set SIH_SECRET_KEY - python -c "import secrets; print(secrets.token_urlsafe(48))"}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-}
+      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - REDIS_URL=redis://redis:6379/0
       - QUEUE_MODE=celery
       - DATA_DIR=/app/data
@@ -43,7 +53,7 @@ services:
     container_name: sih-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: sih_ps57
     ports:
       - "15432:5432"
