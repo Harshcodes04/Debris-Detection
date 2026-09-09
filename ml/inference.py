@@ -129,7 +129,7 @@ def run_inference(file_path: str, config: dict | None = None,
         per_tile.extend(detector.predict_tiles([t.image for t in chunk]))
 
     merged = post.stitch(
-        list(zip(tiles, per_tile)), iou_threshold=cfg.get("stitch_iou", 0.5)
+        list(zip(tiles, per_tile)), iou_threshold=cfg.get("stitch_iou", 0.3)
     )
     merged = post.georeference(merged, sonar)
     merged = [d for d in merged if d["confidence"] >= cfg.get("conf_threshold", 0.25)]
@@ -172,23 +172,15 @@ def _clip_to_image(dets: list[dict], width: int, height: int) -> list[dict]:
 
 def _write_overlay(image: np.ndarray, dets: list[dict], image_id: str,
                    out_dir: Path) -> str:
-    from PIL import Image, ImageDraw
+    from PIL import Image
 
-    colours = {
-        "tyre": (255, 87, 51), "drum": (255, 189, 51), "net": (51, 214, 255),
-        "plastic_debris": (162, 89, 255), "wreck": (255, 51, 153),
-        "unidentified": (160, 160, 160),
-    }
     out_dir.mkdir(parents=True, exist_ok=True)
     canvas = Image.fromarray(image).convert("RGB")
-    draw = ImageDraw.Draw(canvas)
-    for d in dets:
-        x, y, w, h = d["bbox"]
-        colour = colours.get(d["class"], (255, 255, 255))
-        draw.rectangle([x, y, x + w, y + h], outline=colour, width=2)
-        draw.text((x + 2, max(0, y - 11)),
-                  f"{d['class']} {d['confidence']:.2f}", fill=colour)
-    path = out_dir / f"{image_id}_overlay.png"
+    
+    # We no longer burn bounding boxes into the image because the frontend
+    # React app draws interactive, selectable SVG bounding boxes on top of it.
+    
+    path = out_dir / f"{image_id}_processed.png"
     canvas.save(path)
     return str(path)
 

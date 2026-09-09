@@ -9,15 +9,10 @@ samples/sonar_sector_12.jpg
 samples/sonar_sector_19.jpg`
 
 export default function Annotate() {
-  const [paths, setPaths] = useState('')
   const [topK, setTopK] = useState(12)
 
   const rank = useMutation({
-    mutationFn: () =>
-      rankForAnnotation(
-        paths.split('\n').map((s) => s.trim()).filter(Boolean),
-        topK,
-      ),
+    mutationFn: () => rankForAnnotation(undefined, topK),
   })
 
   const candidates = rank.data?.candidates ?? []
@@ -35,28 +30,14 @@ export default function Annotate() {
             Active Annotation Queue
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Ranks unlabelled side-scan sonar imagery by model decision boundary uncertainty to maximize retraining efficiency.
+            Ranks all unlabelled side-scan sonar imagery currently saved in the database by model decision boundary uncertainty to maximize retraining efficiency.
           </p>
         </div>
       </div>
 
       {/* Input Card */}
       <div className="mt-6 rounded-2xl border border-line bg-panel/60 p-5 backdrop-blur-sm shadow-xl">
-        <label htmlFor="paths" className="text-xs font-bold text-white uppercase font-mono">
-          Server Image Paths (One Per Line)
-        </label>
-        <p className="mt-1 text-xs text-muted">
-          Resolved on backend server filesystem directory.
-        </p>
-        <textarea
-          id="paths"
-          rows={4}
-          value={paths}
-          placeholder={PLACEHOLDER}
-          onChange={(e) => setPaths(e.target.value)}
-          className="mt-3 w-full rounded-xl border border-line bg-marine-950/80 p-3.5 font-mono text-xs text-slate-200 placeholder:text-muted/40 focus:border-wreck/50 focus:outline-none"
-        />
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <label htmlFor="topk" className="text-xs font-mono text-muted">Show Top</label>
             <input
@@ -71,7 +52,7 @@ export default function Annotate() {
           </div>
           <button
             onClick={() => rank.mutate()}
-            disabled={!paths.trim() || rank.isPending}
+            disabled={rank.isPending}
             className="inline-flex items-center gap-2 rounded-xl border border-wreck/40 bg-wreck px-4 py-2 text-xs font-bold text-marine-950 hover:bg-wreck/90 transition-all disabled:opacity-40 shadow-glow-cyan"
           >
             <Play className="h-3.5 w-3.5 fill-current" />

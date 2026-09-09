@@ -104,7 +104,7 @@ def get_job_image(
     image_path = Path(job.overlay_path)
     if not image_path.is_file():
         raise HTTPException(status_code=404, detail="Processed image not found")
-    return FileResponse(image_path, media_type="image/svg+xml", filename="overlay.svg")
+    return FileResponse(image_path, media_type="image/png", filename="processed.png")
 
 
 @router.get("/{job_id}/export")

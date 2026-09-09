@@ -124,13 +124,29 @@ def rank_for_annotation(models: dict, images: list[str], top_k: int = 50,
     `models` maps head name to a loaded YOLO. Returns the top_k, most
     informative first - the order an analyst should work through.
     """
+    import numpy as np
+    from ml.interfaces import ReferencePreprocessor
+    
+    pre = ReferencePreprocessor()
     out: list[Candidate] = []
+    
     for path in images:
-        per_head: dict[str, list[float]] = {}
-        for name, model in models.items():
-            r = model.predict(path, conf=conf, verbose=False)[0]
-            per_head[name] = [float(b.conf) for b in r.boxes]
-        out.append(score_image(per_head, path))
+        try:
+            sonar = pre.load(path)
+            img = sonar.image
+            
+            # Convert grayscale to 3-channel for YOLO
+            if len(img.shape) == 2:
+                img = np.stack((img,)*3, axis=-1)
+                
+            per_head: dict[str, list[float]] = {}
+            for name, model in models.items():
+                r = model.predict(img, conf=conf, verbose=False)[0]
+                per_head[name] = [float(b.conf) for b in r.boxes]
+            out.append(score_image(per_head, path))
+        except Exception as e:
+            print(f"Skipping {path} for active learning: {e}")
+            continue
 
     out.sort(key=lambda c: c.score, reverse=True)
     return out[:top_k]

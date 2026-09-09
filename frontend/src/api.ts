@@ -102,5 +102,5 @@ export const getDayPlan = (hazardIds: string[], hoursAvailable = 8) =>
 
 // --- active learning ------------------------------------------------------
 
-export const rankForAnnotation = (images: string[], topK = 20) =>
+export const rankForAnnotation = (images?: string[], topK = 50) =>
   req<RankResponse>('/active-learning/rank', json({ images, top_k: topK }))

@@ -130,14 +130,37 @@ def read_xtf(path: str | Path, *, max_pings: int | None = None) -> SurveyLine:
     if not path.exists():
         raise XTFError(f"no such file: {path}")
 
-    file_header, packets = pyxtf.xtf_read(str(path))
+    notes: list[str] = []
+
+    try:
+        gen = pyxtf.xtf_read_gen(str(path))
+        file_header = next(gen)
+        packets = {}
+        try:
+            while True:
+                packet = next(gen)
+                try:
+                    p_headertype = pyxtf.XTFHeaderType(packet.HeaderType)
+                except ValueError:
+                    p_headertype = pyxtf.XTFHeaderType.unknown
+                if p_headertype not in packets:
+                    packets[p_headertype] = []
+                packets[p_headertype].append(packet)
+        except StopIteration:
+            pass
+        except Exception as e:
+            notes.append(f"file reading stopped early due to corruption: {e}")
+    except Exception as e:
+        raise XTFError(f"failed to read XTF file header: {e}") from e
 
     nav_units = getattr(file_header, "NavUnits", NAV_LATLON)
+    ignore_nav = False
     if nav_units != NAV_LATLON:
-        raise XTFError(
+        notes.append(
             f"file stores positions in projected metres (NavUnits={nav_units}), "
-            "not latitude/longitude. Reproject it before geo-referencing, rather "
-            "than reading metres as degrees.")
+            "not latitude/longitude. Navigation ignored."
+        )
+        ignore_nav = True
 
     pings = packets.get(pyxtf.XTFHeaderType.sonar) or []
     if not pings:
@@ -145,7 +168,6 @@ def read_xtf(path: str | Path, *, max_pings: int | None = None) -> SurveyLine:
     if max_pings:
         pings = pings[:max_pings]
 
-    notes: list[str] = []
     rows: list[np.ndarray] = []
     lats: list[float | None] = []
     lons: list[float | None] = []
@@ -166,13 +188,16 @@ def read_xtf(path: str | Path, *, max_pings: int | None = None) -> SurveyLine:
         # port-outer -> nadir -> starboard-outer
         rows.append(np.concatenate([port[::-1], starboard]))
 
-        lat = getattr(ping, "SensorYcoordinate", None)
-        lon = getattr(ping, "SensorXcoordinate", None)
-        if not _valid_fix(lat, lon):
-            # towfish fix missing; the vessel's own fix is better than nothing,
-            # though it ignores layback
-            lat = getattr(ping, "ShipYcoordinate", None)
-            lon = getattr(ping, "ShipXcoordinate", None)
+        if ignore_nav:
+            lat = lon = None
+        else:
+            lat = getattr(ping, "SensorYcoordinate", None)
+            lon = getattr(ping, "SensorXcoordinate", None)
+            if not _valid_fix(lat, lon):
+                # towfish fix missing; the vessel's own fix is better than nothing,
+                # though it ignores layback
+                lat = getattr(ping, "ShipYcoordinate", None)
+                lon = getattr(ping, "ShipXcoordinate", None)
         ok = _valid_fix(lat, lon)
         lats.append(float(lat) if ok else None)
         lons.append(float(lon) if ok else None)
@@ -194,11 +219,13 @@ def read_xtf(path: str | Path, *, max_pings: int | None = None) -> SurveyLine:
         raise XTFError("no ping carried both channels; nothing to build an image from")
 
     n_fixes = sum(1 for v in lats if v is not None)
-    if n_fixes < MIN_FIXES:
-        raise XTFError(
+    if n_fixes < MIN_FIXES and not ignore_nav:
+        notes.append(
             f"only {n_fixes} valid navigation fixes in {len(rows)} pings. "
             "The file has imagery but no usable position - it can be detected on, "
-            "but not geo-referenced.")
+            "but not geo-referenced."
+        )
+        ignore_nav = True
 
     lat_f, filled_lat = _interpolate(lats)
     lon_f, _ = _interpolate(lons)
@@ -226,12 +253,14 @@ def read_xtf(path: str | Path, *, max_pings: int | None = None) -> SurveyLine:
     altitude = float(np.median([a for a in altitudes if a > 0])) if any(
         a > 0 for a in altitudes) else 0.0
 
-    nav = [
-        NavRecord(ping_index=i, lat=round(lat_f[i], 7), lon=round(lon_f[i], 7),
-                  heading_deg=headings[i] % 360.0,
-                  altitude_m=altitudes[i], slant_range_m=slant)
-        for i in range(len(rows))
-    ]
+    nav = []
+    if not ignore_nav:
+        nav = [
+            NavRecord(ping_index=i, lat=round(lat_f[i], 7), lon=round(lon_f[i], 7),
+                      heading_deg=headings[i] % 360.0,
+                      altitude_m=altitudes[i], slant_range_m=slant)
+            for i in range(len(rows))
+        ]
 
     sonar = SonarImage(image=image, image_id=path.stem, nav=nav)
 
