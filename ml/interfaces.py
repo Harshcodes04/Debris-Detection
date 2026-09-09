@@ -147,20 +147,25 @@ class ReferencePostProcessor:
         return _nms(boxes, iou_threshold)
 
     def georeference(self, detections: list[dict], sonar: SonarImage) -> list[dict]:
-        if not sonar.nav or sonar.ground_range_per_px_m <= 0:
-            return detections  # no navigation in the file: lat/lon stay None
+        if sonar.ground_range_per_px_m <= 0:
+            return detections  # no scale in the file: everything stays None
 
         centre_x = sonar.width / 2.0
         out = []
         for d in detections:
             x, y, w, h = d["bbox"]
             row = int(min(max(y + h / 2.0, 0), sonar.height - 1))
+            size_m = round(w * sonar.ground_range_per_px_m, 2)
+            
+            if not sonar.nav:
+                out.append({**d, "size_m": size_m, "frame_index": row})
+                continue
+                
             nav = _nearest_nav(sonar.nav, row)
             across_px = (x + w / 2.0) - centre_x           # +starboard, -port
             across_m = across_px * sonar.ground_range_per_px_m
             lat, lon = offset_latlon(nav.lat, nav.lon, nav.heading_deg + 90.0, across_m)
-            size_m = w * sonar.ground_range_per_px_m
-            out.append({**d, "lat": lat, "lon": lon, "size_m": round(size_m, 2),
+            out.append({**d, "lat": lat, "lon": lon, "size_m": size_m,
                         "frame_index": row})
         return out
 

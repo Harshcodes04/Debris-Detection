@@ -79,6 +79,7 @@ export default function Detect() {
           if (cancelled) return
           setDetections(page.items)
           setSummary(sum)
+          setPreview(`/api/jobs/${jobId}/image`)
           setPhase('done')
         } else if (job.status === 'failed') {
           setError(new Error(job.error || 'Job processing failed'))
@@ -439,7 +440,22 @@ function BoxOverlay({
     return () => ro.disconnect()
   }, [])
 
-  const scale = natural && shown ? { x: shown.w / natural.w, y: shown.h / natural.h } : null
+  // object-contain scales the image to fit the element box while preserving
+  // aspect ratio. We must compute the *rendered* image rect inside the element
+  // so that bbox coordinates (which are in natural pixels) map to the right
+  // screen pixels and don't drift into the letterbox / pillarbox area.
+  const renderRect = natural && shown
+    ? (() => {
+        const scaleX = shown.w / natural.w
+        const scaleY = shown.h / natural.h
+        const scale = Math.min(scaleX, scaleY)          // object-contain picks the smaller
+        const rw = natural.w * scale
+        const rh = natural.h * scale
+        const ox = (shown.w - rw) / 2                    // pillarbox offset
+        const oy = (shown.h - rh) / 2                    // letterbox offset
+        return { ox, oy, scale }
+      })()
+    : null
 
   return (
     <div className="relative inline-block w-full overflow-hidden rounded-xl border border-[#141f36] bg-black">
@@ -454,7 +470,7 @@ function BoxOverlay({
           setShown({ w: el.clientWidth, h: el.clientHeight })
         }}
       />
-      {scale && shown && (
+      {renderRect && shown && (
         <svg
           className="pointer-events-none absolute inset-0 h-full w-full"
           viewBox={`0 0 ${shown.w} ${shown.h}`}
@@ -463,6 +479,10 @@ function BoxOverlay({
             const [x, y, w, h] = d.bbox
             const colour = classColour(d.class)
             const on = selected === d.id
+            const rx = x * renderRect.scale + renderRect.ox
+            const ry = y * renderRect.scale + renderRect.oy
+            const rw = w * renderRect.scale
+            const rh = h * renderRect.scale
             return (
               <g
                 key={d.id ?? i}
@@ -470,10 +490,10 @@ function BoxOverlay({
                 onClick={() => onSelect(on ? null : d.id)}
               >
                 <rect
-                  x={x * scale.x}
-                  y={y * scale.y}
-                  width={w * scale.x}
-                  height={h * scale.y}
+                  x={rx}
+                  y={ry}
+                  width={rw}
+                  height={rh}
                   fill={on ? colour : 'none'}
                   fillOpacity={on ? 0.25 : 0.08}
                   stroke={colour}
@@ -481,8 +501,8 @@ function BoxOverlay({
                   strokeDasharray={on ? 'none' : '4 2'}
                 />
                 <rect
-                  x={x * scale.x}
-                  y={Math.max(0, y * scale.y - 22)}
+                  x={rx}
+                  y={Math.max(0, ry - 22)}
                   width={Math.max(130, d.class.length * 8 + 45)}
                   height={22}
                   fill="#050914"
@@ -492,8 +512,8 @@ function BoxOverlay({
                   rx={4}
                 />
                 <text
-                  x={x * scale.x + 6}
-                  y={Math.max(15, y * scale.y - 7)}
+                  x={rx + 6}
+                  y={Math.max(15, ry - 7)}
                   fill={colour}
                   fontSize={11}
                   fontWeight={600}
@@ -567,7 +587,14 @@ function DetectionTable({
                     )}
                   </td>
                   <td className="px-4 py-3 text-slate-300">
-                    {d.size_m != null ? `${d.size_m.toFixed(2)} m` : '—'}
+                    {d.size_m != null ? `${d.size_m.toFixed(2)} m` : (
+                      <span
+                        className="text-[#64748b] italic cursor-help"
+                        title="Size estimation requires an XTF survey file with navigation headers. JPEG/PNG uploads have no spatial calibration."
+                      >
+                        No nav data
+                      </span>
+                    )}
                   </td>
                 </tr>
               )
