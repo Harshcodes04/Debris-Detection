@@ -87,6 +87,9 @@ export const whoAmI = () =>
     '/auth/me',
   )
 
+export const registerAccount = (email: string, password: string, full_name?: string) =>
+  req<Account>('/auth/register', json({ email, password, full_name }))
+
 // --- accounts, admin only -------------------------------------------------
 
 export interface Account {
@@ -143,7 +146,7 @@ export const createSurvey = (name: string, notes?: string) =>
 export async function uploadToSurvey(surveyId: number, file: File): Promise<UploadResponse> {
   const body = new FormData()
   body.append('file', file)
-  const r = await fetch(`${BASE}/surveys/${surveyId}/upload`, { method: 'POST', body })
+  const r = await fetch(`${BASE}/surveys/${surveyId}/upload`, withAuth({ method: 'POST', body }))
   if (!r.ok) throw new Error(`Upload failed: ${r.status} ${r.statusText}`)
   return r.json()
 }

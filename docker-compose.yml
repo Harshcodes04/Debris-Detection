@@ -1,5 +1,16 @@
 services:
 
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    image: sih-frontend
+    container_name: sih-frontend
+    ports:
+      - "5200:80"
+    depends_on:
+      - api
+
   api:
     build:
       context: .

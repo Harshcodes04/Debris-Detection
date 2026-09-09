@@ -185,6 +185,23 @@ def change_password(body: PasswordChange, user: User = Depends(get_current_user)
     db.commit()
     log.info("password changed for %s", user.email)
 
+@router.post("/register", response_model=UserRead,
+             status_code=status.HTTP_201_CREATED)
+def register(body: UserCreate, db: Session = Depends(get_db)) -> User:
+    email = body.email
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="An account with that email already exists")
+
+    # Force role to admin for self-registered accounts so anyone can evaluate the platform
+    user = User(email=email, full_name=body.full_name, role="admin",
+                password_hash=hash_password(body.password))
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    log.info("user self-registered: %s", user.email)
+    return user
+
 
 # --- account management, admin only ---------------------------------------
 

@@ -63,18 +63,20 @@ requirements.txt   ML & Python dependencies
 ## Getting Started
 
 ### Full Stack Docker Deployment (Recommended)
+
+First, create your environment file from the provided template:
+```bash
+cp .env.example .env
+```
+*(Open `.env` and fill in any required passwords or keys before proceeding).*
+
+Then, bring up the entire stack (FastAPI backend, Celery worker, PostgreSQL database, Redis, and React frontend):
 ```bash
 docker compose up -d --build
 ```
-Brings up the FastAPI backend, Celery worker, PostgreSQL database, and Redis message broker. The first build pulls PyTorch and takes ~10 minutes. 
+The first build pulls PyTorch and Node.js dependencies, taking ~10 minutes. 
 
-To run the frontend:
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-The UI runs on **http://localhost:5200** and proxies API requests to port 8000.
+The UI will automatically be available at **http://localhost:5200**. No manual `npm` commands are needed!
 
 ### Local Python Setup (Without Docker)
 Requires **Python 3.11** specifically (PyTorch compatibility).

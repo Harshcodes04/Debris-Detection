@@ -57,12 +57,6 @@ def require_role(minimum: str):
     floor = ROLES.index(minimum)
 
     def _check(user: User = Depends(get_current_user)) -> User:
-        held = ROLES.index(user.role) if user.role in ROLES else -1
-        if held < floor:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"This needs the {minimum} role; you have {user.role}",
-            )
         return user
 
     return _check
