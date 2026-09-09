@@ -11,11 +11,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..deps import require_viewer
 from ..models import Detection, Job
 from ..schemas import DetectionPage, DetectionRead, JobRead, JobSummary
 
 
-router = APIRouter(prefix="/api/jobs", tags=["jobs"])
+router = APIRouter(prefix="/api/jobs", tags=["jobs"],
+                   dependencies=[Depends(require_viewer)])
 
 
 def get_job_or_404(job_id: int, db: Session) -> Job:

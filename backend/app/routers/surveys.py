@@ -5,13 +5,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Job, Survey, SurveyFile
+from ..deps import require_analyst, require_viewer
+from ..models import Job, Survey, SurveyFile, User
 from ..schemas import SurveyCreate, SurveyRead, UploadResponse
 from ..services.queue import enqueue_job
 from ..storage import StorageError, save_upload
 
 
-router = APIRouter(prefix="/api/surveys", tags=["surveys"])
+router = APIRouter(prefix="/api/surveys", tags=["surveys"],
+                   dependencies=[Depends(require_viewer)])
 
 
 @router.get("", response_model=list[SurveyRead])
@@ -26,7 +28,8 @@ def list_surveys(
 
 
 @router.post("", response_model=SurveyRead, status_code=status.HTTP_201_CREATED)
-def create_survey(payload: SurveyCreate, db: Session = Depends(get_db)) -> Survey:
+def create_survey(payload: SurveyCreate, db: Session = Depends(get_db),
+                  _: User = Depends(require_analyst)) -> Survey:
     survey = Survey(name=payload.name.strip(), notes=payload.notes)
     if not survey.name:
         raise HTTPException(status_code=422, detail="Survey name cannot be empty")
@@ -42,6 +45,7 @@ async def upload_sonar_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    _: User = Depends(require_analyst),
 ) -> UploadResponse:
     survey = db.get(Survey, survey_id)
     if survey is None:

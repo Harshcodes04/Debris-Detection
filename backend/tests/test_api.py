@@ -11,9 +11,10 @@ from app.main import app
 
 
 @pytest.fixture
-def client() -> TestClient:
-    with TestClient(app) as test_client:
-        yield test_client
+def client(admin_client: TestClient) -> TestClient:
+    """These exercise the API's behaviour, not its access control, so they run
+    as an admin. Access control has its own tests in test_auth.py."""
+    return admin_client
 
 
 def test_health(client: TestClient) -> None:

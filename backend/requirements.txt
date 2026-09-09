@@ -22,3 +22,10 @@ pillow==12.3.0
 pyyaml==6.0.3
 opencv-python==5.0.0.93
 matplotlib==3.11.1
+
+# Authentication
+pyjwt>=2.9,<3.0
+argon2-cffi>=23.1,<26.0
+
+# Schema migrations
+alembic>=1.13,<2.0

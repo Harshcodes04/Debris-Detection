@@ -4,12 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import RegistryEntry
+from ..deps import require_analyst, require_viewer
+from ..models import RegistryEntry, User
 from ml.recovery import plan_recovery, day_plan
 from ml.enrich import enrich_detection, to_dict as context_to_dict
 from ml.risk import score_detection, to_dict as risk_to_dict
 
-router = APIRouter(prefix="/api/recovery", tags=["recovery"])
+router = APIRouter(prefix="/api/recovery", tags=["recovery"],
+                   dependencies=[Depends(require_viewer)])
 
 class DayPlanRequest(BaseModel):
     hazard_ids: list[str]
@@ -54,7 +56,8 @@ def get_recovery_plan(hazard_id: str, db: Session = Depends(get_db)):
     }
 
 @router.post("/day-plan")
-def create_day_plan(req: DayPlanRequest, db: Session = Depends(get_db)):
+def create_day_plan(req: DayPlanRequest, db: Session = Depends(get_db),
+                    _: User = Depends(require_analyst)):
     entries = db.query(RegistryEntry).filter(RegistryEntry.hazard_id.in_(req.hazard_ids)).all()
     if not entries:
         raise HTTPException(status_code=404, detail="No matching hazards found")
