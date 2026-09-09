@@ -1,0 +1,56 @@
+# Render blueprint. Create the service from this rather than by hand, so the
+# environment cannot drift from what the code expects.
+#
+# Two values are marked sync:false and must be set in the dashboard before the
+# first deploy - the service refuses to start without a signing key, and a
+# database with no accounts has no way in.
+
+services:
+  - type: web
+    name: sih-ps57-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    # The image needs ml/ and weights/ as well as backend/, so the build context
+    # is the repository root.
+    dockerContext: .
+    plan: starter          # torch does not fit the free plan's memory
+    healthCheckPath: /api/health
+    # Uploads, overlays and the SQLite file live here. Without a disk they are
+    # wiped on every deploy and every restart.
+    disk:
+      name: survey-data
+      mountPath: /app/data
+      sizeGB: 10
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATA_DIR
+        value: /app/data
+      - key: QUEUE_MODE
+        value: local       # no Celery worker on this service
+      - key: LOG_LEVEL
+        value: INFO
+      # Render terminates TLS in front, so the client address arrives in a
+      # forwarded header. Without this the rate limiter keys every request to
+      # the proxy and one client can exhaust everyone's allowance.
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+      # The Vercel origin. The browser calls this API from there, so it has to
+      # be allowed by name - a wildcard is not an option with credentials.
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SIH_SECRET_KEY
+        generateValue: true
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sih-ps57-db
+          property: connectionString
+
+databases:
+  - name: sih-ps57-db
+    plan: basic-256mb
+    postgresMajorVersion: "16"

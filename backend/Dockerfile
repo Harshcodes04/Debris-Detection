@@ -30,6 +30,7 @@ EXPOSE 8000
 
 # Compose can then wait for the API to answer, not just for the container to
 # start, the same way it already waits for Postgres.
-HEALTHCHECK --interval=10s --timeout=3s --start-period=40s --retries=6     CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=2).status == 200 else 1)"
+HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=6     CMD python -c "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen(f\"http://127.0.0.1:{os.getenv('PORT','8000')}/api/health\", timeout=3).status == 200 else 1)"
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["uvicorn","app.main:app","--host","0.0.0.0","--port","8000"]
+# The port comes from $PORT via the entrypoint, so the platform decides it.
+CMD ["uvicorn","app.main:app","--host","0.0.0.0"]
