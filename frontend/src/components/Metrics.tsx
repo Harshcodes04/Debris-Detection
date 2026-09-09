@@ -42,14 +42,14 @@ const SYSTEM: Metric[] = [
 
 function Card({ m }: { m: Metric }) {
   return (
-    <div className="rounded-2xl border border-line bg-panel/60 p-5 backdrop-blur-sm shadow-md hover:border-wreck/40 transition-all group">
+    <div className="rounded-md border border-line bg-panel/60 p-5 bg-clip-padding shadow-md hover:border-wreck/40 transition-all group">
       <div className="font-mono text-3xl font-extrabold text-wreck group-hover:scale-105 transition-transform origin-left">
         {m.value}
       </div>
-      <div className="mt-2 text-xs font-bold text-slate-200 uppercase tracking-wider">{m.label}</div>
+      <div className="mt-2 text-xs font-medium text-slate-300">{m.label}</div>
       <div className="mt-1 text-[11px] text-muted leading-snug">{m.detail}</div>
       {m.caveat && (
-        <div className="mt-3 border-t border-line/60 pt-2 text-[10px] font-mono text-amber-400 flex items-center gap-1">
+        <div className="mt-3 border-t border-line/60 pt-2 text-[10px] font-mono text-hazard flex items-center gap-1">
           <AlertTriangle className="h-3 w-3 shrink-0" />
           {m.caveat}
         </div>
@@ -84,7 +84,7 @@ export function Metrics() {
           ))}
         </div>
 
-        <div className="mt-6 rounded-2xl border border-line bg-panel/40 p-5 text-xs text-muted backdrop-blur-sm">
+        <div className="mt-6 rounded-md border border-line bg-panel/40 p-5 text-xs text-muted bg-clip-padding">
           <div className="font-bold text-slate-200 text-sm flex items-center gap-2 mb-1">
             <Cpu className="h-4 w-4 text-wreck" /> Resolution Bottleneck Insight
           </div>

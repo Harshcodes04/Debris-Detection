@@ -57,7 +57,7 @@ export default function Recovery() {
       </div>
 
       {/* Operational Working Day Scheduler Controls */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-panel/60 p-5 backdrop-blur-sm shadow-lg">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-md border border-line bg-panel/60 p-5 bg-clip-padding shadow-lg">
         <div className="flex items-center gap-4">
           <Clock className="h-5 w-5 text-wreck" />
           <div>
@@ -83,7 +83,7 @@ export default function Recovery() {
         <button
           onClick={() => day.mutate()}
           disabled={!live.length || day.isPending}
-          className="inline-flex items-center gap-2 rounded-xl border border-wreck/40 bg-wreck px-5 py-2.5 text-xs font-bold text-marine-950 hover:bg-wreck/90 transition-all disabled:opacity-40 shadow-glow-cyan"
+          className="inline-flex items-center gap-2 rounded-md border border-wreck/40 bg-wreck px-5 py-2.5 text-xs font-bold text-marine-950 hover:bg-wreck/90 transition-all disabled:opacity-40 shadow-none"
         >
           <Play className="h-3.5 w-3.5 fill-current" />
           {day.isPending ? 'Optimizing Plan...' : 'Generate Day Mission Plan'}
@@ -94,7 +94,7 @@ export default function Recovery() {
 
       {/* Generated Day Plan Summary */}
       {day.data && (
-        <div className="mt-6 rounded-2xl border border-wreck/40 bg-wreck/10 p-5 text-xs backdrop-blur-sm shadow-glow-cyan">
+        <div className="mt-6 rounded-md border border-wreck/40 bg-wreck/10 p-5 text-xs bg-clip-padding shadow-none">
           <div className="font-bold text-slate-100 text-sm flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-wreck" />
             {day.data.hours_planned.toFixed(1)} h planned of {day.data.hours_available} h available ·{' '}
@@ -110,7 +110,7 @@ export default function Recovery() {
 
       {/* Hazard Recovery Cards List */}
       {!live.length ? (
-        <div className="mt-6"><Empty>No outstanding hazards in the registry requiring recovery.</Empty></div>
+        <div className="mt-6"><Empty>Nothing in the registry needs recovering.</Empty></div>
       ) : (
         <div className="mt-6 space-y-4">
           {ready.map((plan) => {
@@ -118,9 +118,9 @@ export default function Recovery() {
             return (
               <div
                 key={plan.hazard_id}
-                className={`rounded-2xl border p-5 transition-all backdrop-blur-sm ${
+                className={`rounded-md border p-5 transition-all bg-clip-padding ${
                   inDay
-                    ? 'border-wreck/50 bg-wreck/10 shadow-glow-cyan'
+                    ? 'border-wreck/50 bg-wreck/10 shadow-none'
                     : 'border-line bg-panel/40 hover:border-line-bright'
                 }`}
               >

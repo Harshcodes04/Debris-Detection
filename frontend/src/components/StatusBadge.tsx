@@ -17,14 +17,14 @@ export function StatusBadge({ status, label, pulse = false }: StatusBadgeProps) 
     classes = 'bg-wreck/10 text-wreck border-wreck/30'
     dotColor = 'bg-wreck'
   } else if (s === 'unconfirmed' || s === 'flagged' || s === 'processing' || s === 'queued' || s === 'medium') {
-    classes = 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-    dotColor = 'bg-amber-400'
+    classes = 'bg-hazard/10 text-hazard border-hazard/30'
+    dotColor = 'bg-hazard'
   } else if (s === 'recovered' || s === 'safe' || s === 'resolved' || s === 'low') {
-    classes = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-    dotColor = 'bg-emerald-400'
+    classes = 'bg-safe/10 text-safe border-safe/30'
+    dotColor = 'bg-safe'
   } else if (s === 'failed' || s === 'critical' || s === 'offline' || s === 'gone') {
-    classes = 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-    dotColor = 'bg-rose-400'
+    classes = 'bg-ghost/10 text-ghost border-ghost/30'
+    dotColor = 'bg-ghost'
   }
 
   return (
@@ -34,7 +34,7 @@ export function StatusBadge({ status, label, pulse = false }: StatusBadgeProps) 
       <span className="relative flex h-1.5 w-1.5">
         {pulse && (
           <span
-            className={`absolute inline-flex h-full w-full animate-ping rounded-full ${dotColor} opacity-75`}
+            className={`absolute inline-flex h-full w-full opacity-0 rounded-full ${dotColor} opacity-75`}
           />
         )}
         <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${dotColor}`} />

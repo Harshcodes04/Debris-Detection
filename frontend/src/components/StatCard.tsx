@@ -24,25 +24,25 @@ export function StatCard({
       border: 'border-wreck/30',
       bg: 'bg-wreck/10',
       text: 'text-wreck',
-      glow: 'hover:shadow-glow-cyan',
+      glow: 'hover:border-line-bright',
     },
     rose: {
-      border: 'border-rose-500/30',
-      bg: 'bg-rose-500/10',
-      text: 'text-rose-400',
-      glow: 'hover:shadow-glow-rose',
+      border: 'border-ghost/30',
+      bg: 'bg-ghost/10',
+      text: 'text-ghost',
+      glow: 'hover:border-line-bright',
     },
     amber: {
-      border: 'border-amber-500/30',
-      bg: 'bg-amber-500/10',
-      text: 'text-amber-400',
+      border: 'border-hazard/30',
+      bg: 'bg-hazard/10',
+      text: 'text-hazard',
       glow: 'hover:shadow-glow-amber',
     },
     emerald: {
-      border: 'border-emerald-500/30',
-      bg: 'bg-emerald-500/10',
-      text: 'text-emerald-400',
-      glow: 'hover:shadow-glow-emerald',
+      border: 'border-safe/30',
+      bg: 'bg-safe/10',
+      text: 'text-safe',
+      glow: 'hover:border-line-bright',
     },
     indigo: {
       border: 'border-indigo-500/30',
@@ -56,7 +56,7 @@ export function StatCard({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl border border-line bg-panel/70 p-5 backdrop-blur-sm transition-all duration-300 hover:border-line-bright ${activeColor.glow}`}
+      className={`group relative overflow-hidden rounded-md border border-line bg-panel/70 p-5 bg-clip-padding transition-all duration-300 hover:border-line-bright ${activeColor.glow}`}
     >
       {/* Top row: Icon & Trend */}
       <div className="flex items-center justify-between">
@@ -67,9 +67,9 @@ export function StatCard({
           <span
             className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-mono font-medium ${
               trendType === 'positive'
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                ? 'bg-safe/10 text-safe border border-safe/30'
                 : trendType === 'negative'
-                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                ? 'bg-ghost/10 text-ghost border border-ghost/30'
                 : 'bg-slate-500/10 text-slate-400 border border-slate-500/30'
             }`}
           >
@@ -83,7 +83,7 @@ export function StatCard({
         <div className="font-mono text-2xl lg:text-3xl font-bold tracking-tight text-white">
           {value}
         </div>
-        <div className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-300">
+        <div className="mt-1 text-xs font-medium text-slate-300">
           {title}
         </div>
       </div>

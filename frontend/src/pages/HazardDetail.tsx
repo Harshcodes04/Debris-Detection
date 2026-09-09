@@ -6,9 +6,9 @@ import { StatusBadge } from '../components/StatusBadge'
 import { Failed, Loading, Wrap } from '../components/Shell'
 
 const BAND_CLASS: Record<string, string> = {
-  HIGH: 'border-rose-500/40 bg-rose-500/10 text-rose-300',
-  MEDIUM: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
-  LOW: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
+  HIGH: 'border-ghost/40 bg-ghost/10 text-rose-300',
+  MEDIUM: 'border-hazard/40 bg-hazard/10 text-amber-300',
+  LOW: 'border-safe/40 bg-safe/10 text-emerald-300',
 }
 
 function Field({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
@@ -31,7 +31,7 @@ function Card({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-2xl border border-line bg-panel/60 p-5">
+    <section className="rounded-md border border-line bg-panel/60 p-5">
       <div className="mb-1 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
         {icon}
         {title}

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Map, Layers } from 'lucide-react'
-import { getRegistry, heatmapUrl } from '../api'
+import { getHeatmap, getRegistry } from '../api'
 import { STATUS_COLOUR } from '../types'
 import { Failed, Wrap } from '../components/Shell'
 
@@ -16,7 +16,11 @@ export default function MapView() {
 
   useEffect(() => {
     if (!el.current || map.current) return
-    map.current = L.map(el.current).setView([12.9231, 74.6012], 13)
+    // Leaflet fades tiles in from JavaScript, and on a container it measured as
+    // zero-width that loop stalls and leaves every tile at opacity 0 - a black
+    // map with markers floating on it. Nothing to fade means nothing to stall.
+    map.current = L.map(el.current, { fadeAnimation: false })
+      .setView([12.9231, 74.6012], 13)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
@@ -40,22 +44,21 @@ export default function MapView() {
     const observer = new ResizeObserver(resize)
     observer.observe(el.current)
 
-    fetch(heatmapUrl)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((gj) => {
+    getHeatmap()
+      .then((gj: any) => {
         if (!gj?.features?.length || !map.current) return
         L.geoJSON(gj, {
           pane: 'riskgrid',
           style: (f) => ({
-            color: '#f97316',
+            color: '#57575e',
             weight: 1,
-            fillColor: '#f97316',
+            fillColor: '#57575e',
             fillOpacity: 0.06 + 0.22 * (f?.properties?.intensity ?? 0),
           }),
           onEachFeature: (f, layer) =>
             layer.bindPopup(
-              `<div style="font-family: sans-serif; font-size: 12px; color: #e2e8f0;">` +
-              `<strong style="color: #00f2ff;">Risk Grid Cell</strong><br/>` +
+              `<div style="font-family: sans-serif; font-size: 12px; color: #e8e8ea;">` +
+              `<strong style="color: #6d8bab;">Risk Grid Cell</strong><br/>` +
               `Hazards: <b>${f.properties.hazards}</b><br/>` +
               `Accumulated Risk: <b>${f.properties.risk_sum}</b><br/>` +
               `Confirmed: <b>${f.properties.persistent}</b>` +
@@ -77,14 +80,14 @@ export default function MapView() {
     const group = L.layerGroup().addTo(map.current)
     hazards.forEach((h) => {
       const body = document.createElement('div')
-      body.style.cssText = 'font-family: sans-serif; font-size: 12px; color: #e2e8f0; min-width: 190px;'
+      body.style.cssText = 'font-family: sans-serif; font-size: 12px; color: #e8e8ea; min-width: 190px;'
       body.innerHTML =
-        `<div style="color: #00f2ff; font-weight: bold; font-family: monospace; font-size: 13px;">${h.hazard_id}</div>` +
+        `<div style="color: #6d8bab; font-weight: bold; font-family: monospace; font-size: 13px;">${h.hazard_id}</div>` +
         `<div style="margin-top: 4px;"><b>Class:</b> ${h.class}</div>` +
         `<div><b>Status:</b> ${h.status}</div>` +
         `<div><b>Sightings:</b> ${h.times_seen}×</div>` +
         `<div><b>Last sighted:</b> ${h.last_seen}</div>` +
-        `<div style="margin-top: 4px; font-family: monospace; color: #94a3b8;">` +
+        `<div style="margin-top: 4px; font-family: monospace; color: #8a8a91;">` +
         `${h.lat.toFixed(6)}, ${h.lon.toFixed(6)}</div>`
 
       // A link would reload the whole app and lose the router, so this drives
@@ -95,15 +98,15 @@ export default function MapView() {
       more.style.cssText =
         'margin-top: 8px; width: 100%; cursor: pointer; border-radius: 6px;' +
         'border: 1px solid rgba(0,242,255,0.35); background: rgba(0,242,255,0.10);' +
-        'color: #00f2ff; font-family: monospace; font-size: 11px; padding: 5px 8px;'
+        'color: #6d8bab; font-family: monospace; font-size: 11px; padding: 5px 8px;'
       more.addEventListener('click', () => navigate(`/hazards/${h.hazard_id}`))
       body.appendChild(more)
 
       L.circleMarker([h.lat, h.lon], {
         radius: 6 + Math.min(h.times_seen, 4) * 2,
-        color: '#070d1a',
+        color: '#111112',
         weight: 2,
-        fillColor: STATUS_COLOUR[h.status] ?? '#94a3b8',
+        fillColor: STATUS_COLOUR[h.status] ?? '#8a8a91',
         fillOpacity: 0.9,
       })
         .bindPopup(body)
@@ -142,19 +145,19 @@ export default function MapView() {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-wreck/30 bg-wreck/10 px-3 py-0.5 text-xs font-mono text-wreck mb-1">
             <Map className="h-3.5 w-3.5 text-wreck" />
-            GIS SPATIAL RISK MAP
+            Risk map
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">
-            Bathymetric Debris Map
+            Debris map
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Geospatial visualization of target hazards and accumulated sonar risk grid intensity.
+            Hazards from the registry, over a grid weighted by accumulated risk.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-xl border border-line bg-panel/70 px-3 py-1.5 text-xs font-mono text-slate-300">
-            <span className="h-2 w-2 rounded-full bg-wreck animate-pulse" />
+          <div className="flex items-center gap-2 rounded-md border border-line bg-panel/70 px-3 py-1.5 text-xs font-mono text-slate-300">
+            <span className="h-2 w-2 rounded-full bg-wreck opacity-90" />
             {hazards?.length
               ? `${hazards.length} hazard${hazards.length === 1 ? '' : 's'} in registry`
               : 'Registry empty'}
@@ -165,29 +168,29 @@ export default function MapView() {
       {error && <div className="mt-4"><Failed error={error} /></div>}
 
       {/* Map Container Card */}
-      <div className="mt-6 relative overflow-hidden rounded-2xl border border-line bg-panel/60 p-2 backdrop-blur-sm shadow-2xl">
-        <div ref={el} className="h-[620px] w-full rounded-xl" />
+      <div className="mt-6 relative overflow-hidden rounded-md border border-line bg-panel/60 p-2 bg-clip-padding shadow-none">
+        <div ref={el} className="h-[620px] w-full rounded-md" />
 
-        {/* Floating Map Legend Overlay */}
-        <div className="absolute bottom-6 left-6 z-[1000] rounded-xl border border-line bg-marine-950/90 p-4 text-xs backdrop-blur-md max-w-xs shadow-xl">
-          <div className="font-mono font-bold text-slate-200 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Layers className="h-3.5 w-3.5 text-wreck" /> Map Legend
+        {/* Floating Legend Overlay */}
+        <div className="absolute bottom-6 left-6 z-[1000] rounded-md border border-line bg-marine-950/90 p-4 text-xs bg-clip-padding max-w-xs shadow-none">
+          <div className="font-semibold text-slate-200 mb-2 flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5 text-wreck" /> Legend
           </div>
           <div className="space-y-2 font-mono text-[11px]">
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-wreck inline-block border border-black" />
+              <span className="h-3 w-3 rounded-full bg-[#6d8bab] inline-block" />
               <span className="text-slate-300">Present / Confirmed Hazard</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-amber-400 inline-block border border-black" />
+              <span className="h-3 w-3 rounded-full bg-[#9a9aa2] inline-block" />
               <span className="text-slate-300">Unconfirmed Single Sight</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-emerald-400 inline-block border border-black" />
+              <span className="h-3 w-3 rounded-full bg-[#6f9270] inline-block" />
               <span className="text-slate-300">Recovered Debris</span>
             </div>
             <div className="flex items-center gap-2 border-t border-line/60 pt-2">
-              <span className="h-3 w-3 rounded bg-orange-500/40 border border-orange-500 inline-block" />
+              <span className="h-3 w-3 rounded-sm bg-[#57575e]/40 border border-[#57575e] inline-block" />
               <span className="text-muted">Sonar Accumulation Grid</span>
             </div>
           </div>
